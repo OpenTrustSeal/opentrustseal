@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTrustToken -- Internal Knowledge Base</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy-deep:#0d1117;--navy:#1a1a2e;--navy-light:#16213e;
+--pink:#e94560;--pink-light:#ff6b8a;
+--gold:#d4a574;--gold-bright:#d4af37;
+--purple:#bc8cff;--purple-deep:#533483;
+--cream:#f5f0e8;--cream-dim:#c4bfb6;
+--glass:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.1);
+--font-body:'Inter',system-ui,sans-serif;
+--font-display:'Playfair Display',Georgia,serif;
+--font-mono:'JetBrains Mono',monospace;
+--timing:377ms;--timing-slow:610ms;--timing-fast:233ms;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+font-family:var(--font-body);background:var(--navy-deep);color:var(--cream);
+line-height:1.7;min-height:100vh;
+}
+a{color:var(--pink-light);text-decoration:none;transition:color var(--timing-fast)}
+a:hover{color:var(--pink)}
+a:focus-visible{outline:2px solid var(--pink);outline-offset:3px;border-radius:3px}
+.skip-link{
+position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;
+background:var(--pink);color:#fff;font-weight:600;border-radius:0 0 8px 8px;
+z-index:1000;transition:top var(--timing-fast);
+}
+.skip-link:focus{top:0}
+img{max-width:100%;height:auto}
+h1,h2,h3,h4{font-family:var(--font-display);line-height:1.3;letter-spacing:-0.01em}
+h1{font-size:clamp(2rem,5vw,3.5rem);margin-bottom:1.5rem}
+h2{font-size:clamp(1.5rem,3.5vw,2.5rem);margin-bottom:1rem}
+h3{font-size:clamp(1.2rem,2.5vw,1.75rem);margin-bottom:0.75rem}
+h4{font-size:1.1rem;margin-bottom:0.5rem;font-family:var(--font-body);font-weight:600}
+
+/* Layout */
+.container{max-width:1100px;margin:0 auto;padding:0 1.5rem}
+
+/* Hero */
+.hero{
+padding:6rem 0 4rem;text-align:center;position:relative;overflow:hidden;
+background:radial-gradient(ellipse at 50% 0%,rgba(83,52,131,0.3) 0%,transparent 60%),
+radial-gradient(ellipse at 80% 100%,rgba(233,69,96,0.15) 0%,transparent 50%),
+var(--navy-deep);
+}
+.hero h1{
+background:linear-gradient(135deg,var(--cream) 0%,var(--gold) 50%,var(--pink-light) 100%);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+background-clip:text;
+}
+.hero .subtitle{font-size:clamp(1rem,2vw,1.25rem);color:var(--cream-dim);max-width:700px;margin:0 auto 2rem}
+.hero .badge{
+display:inline-block;padding:0.4rem 1rem;border-radius:100px;
+background:rgba(233,69,96,0.15);border:1px solid rgba(233,69,96,0.3);
+color:var(--pink-light);font-size:0.85rem;font-weight:500;margin-bottom:2rem;
+}
+
+/* Navigation */
+.toc{
+position:sticky;top:0;z-index:100;
+background:rgba(13,17,23,0.92);backdrop-filter:blur(12px);
+border-bottom:1px solid var(--glass-border);
+padding:0.75rem 0;
+}
+.toc-inner{
+display:flex;gap:0.25rem;overflow-x:auto;scrollbar-width:none;
+padding:0 1.5rem;max-width:1100px;margin:0 auto;
+}
+.toc-inner::-webkit-scrollbar{display:none}
+.toc a{
+padding:0.5rem 1rem;border-radius:6px;font-size:0.85rem;font-weight:500;
+color:var(--cream-dim);white-space:nowrap;min-height:44px;display:flex;align-items:center;
+transition:background var(--timing-fast),color var(--timing-fast);
+}
+.toc a:hover,.toc a:focus-visible{background:var(--glass);color:var(--cream)}
+.toc a.active{background:rgba(233,69,96,0.15);color:var(--pink-light)}
+
+/* Sections */
+section{padding:4rem 0;border-bottom:1px solid var(--glass-border)}
+section:last-of-type{border-bottom:none}
+.section-label{
+font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;
+color:var(--pink);margin-bottom:0.5rem;
+}
+
+/* Cards */
+.card{
+background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;
+padding:2rem;margin-bottom:1.5rem;transition:border-color var(--timing-fast);
+}
+.card:hover{border-color:rgba(255,255,255,0.2)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+.card h3{color:var(--gold)}
+.card p{color:var(--cream-dim);margin-bottom:0.75rem}
+.card p:last-child{margin-bottom:0}
+
+/* Education boxes */
+.edu-box{
+background:linear-gradient(135deg,rgba(83,52,131,0.15),rgba(233,69,96,0.08));
+border:1px solid rgba(188,140,255,0.2);border-radius:12px;
+padding:2rem;margin:1.5rem 0;
+}
+.edu-box h4{color:var(--purple);margin-bottom:0.75rem}
+.edu-box .analogy{
+background:rgba(212,165,116,0.1);border-left:3px solid var(--gold);
+padding:1rem 1.25rem;border-radius:0 8px 8px 0;margin:1rem 0;
+font-style:italic;color:var(--cream);
+}
+.edu-box .analogy strong{color:var(--gold);font-style:normal}
+
+/* Code blocks */
+.code-block{
+background:var(--navy);border:1px solid var(--glass-border);border-radius:8px;
+padding:1.25rem 1.5rem;font-family:var(--font-mono);font-size:0.85rem;
+overflow-x:auto;margin:1rem 0;line-height:1.6;color:var(--cream-dim);
+}
+.code-block .key{color:var(--purple)}
+.code-block .val{color:var(--pink-light)}
+.code-block .comment{color:#6a737d}
+
+/* Flow diagrams */
+.flow{
+display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+gap:0.75rem;margin:1.5rem 0;
+}
+.flow-step{
+background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;
+padding:0.75rem 1.25rem;font-size:0.9rem;text-align:center;
+min-width:140px;
+}
+.flow-step.highlight{border-color:var(--pink);background:rgba(233,69,96,0.1)}
+.flow-arrow{color:var(--pink);font-size:1.25rem;font-weight:700}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:1rem 0;border-radius:8px;border:1px solid var(--glass-border)}
+table{width:100%;border-collapse:collapse;font-size:0.9rem}
+thead{background:var(--navy)}
+th{padding:0.75rem 1rem;text-align:left;font-weight:600;color:var(--gold);white-space:nowrap}
+td{padding:0.75rem 1rem;border-top:1px solid var(--glass-border);color:var(--cream-dim)}
+tr:hover td{background:var(--glass)}
+
+/* Tier visual */
+.tier-stack{display:flex;flex-direction:column;gap:0;margin:1.5rem 0}
+.tier{
+padding:1.25rem 1.5rem;border:1px solid var(--glass-border);
+display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;
+}
+.tier:first-child{border-radius:12px 12px 0 0}
+.tier:last-child{border-radius:0 0 12px 12px}
+.tier-name{font-weight:600;font-size:1rem}
+.tier-price{font-family:var(--font-mono);font-weight:500}
+.tier-ceiling{
+padding:0.25rem 0.75rem;border-radius:100px;font-size:0.8rem;font-weight:600;
+}
+.tier.t-free{background:rgba(255,255,255,0.03)}
+.tier.t-free .tier-ceiling{background:rgba(255,255,255,0.1);color:var(--cream-dim)}
+.tier.t-enhanced{background:rgba(188,140,255,0.06)}
+.tier.t-enhanced .tier-ceiling{background:rgba(188,140,255,0.2);color:var(--purple)}
+.tier.t-kyc{background:rgba(233,69,96,0.06)}
+.tier.t-kyc .tier-ceiling{background:rgba(233,69,96,0.2);color:var(--pink-light)}
+.tier.t-enterprise{background:rgba(212,175,55,0.06)}
+.tier.t-enterprise .tier-ceiling{background:rgba(212,175,55,0.2);color:var(--gold-bright)}
+
+/* Score example */
+.score-example{
+background:var(--navy);border:1px solid var(--glass-border);border-radius:12px;
+padding:1.5rem 2rem;margin:1rem 0;
+}
+.score-example h4{color:var(--cream);margin-bottom:1rem}
+.score-bar{
+display:flex;align-items:center;gap:0.75rem;margin:0.4rem 0;font-size:0.85rem;
+}
+.score-bar .label{width:120px;color:var(--cream-dim);flex-shrink:0}
+.score-bar .bar-track{flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden}
+.score-bar .bar-fill{height:100%;border-radius:4px;transition:width var(--timing-slow)}
+.score-bar .bar-fill.high{background:linear-gradient(90deg,var(--purple),var(--pink-light))}
+.score-bar .bar-fill.mid{background:linear-gradient(90deg,var(--gold),var(--pink-light))}
+.score-bar .bar-fill.low{background:var(--pink)}
+.score-bar .bar-fill.zero{background:rgba(255,255,255,0.15)}
+.score-bar .pts{width:40px;text-align:right;font-family:var(--font-mono);font-size:0.8rem;color:var(--cream-dim)}
+
+/* Scaling visual */
+.scale-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1.5rem 0}
+.scale-card{
+background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;
+padding:1.25rem;text-align:center;
+}
+.scale-card .stage{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--pink);margin-bottom:0.25rem}
+.scale-card .domains{font-family:var(--font-display);font-size:1.5rem;color:var(--cream);margin-bottom:0.25rem}
+.scale-card .cost{font-family:var(--font-mono);color:var(--gold);font-size:0.95rem;margin-bottom:0.5rem}
+.scale-card .detail{font-size:0.8rem;color:var(--cream-dim)}
+
+/* Glossary */
+.glossary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin:1.5rem 0}
+.glossary-item{
+background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:1.25rem;
+}
+.glossary-item dt{font-weight:600;color:var(--pink-light);margin-bottom:0.25rem;font-size:0.95rem}
+.glossary-item dd{color:var(--cream-dim);font-size:0.9rem}
+
+/* Footer */
+footer{padding:3rem 0;text-align:center;color:var(--cream-dim);font-size:0.85rem}
+footer .mark{color:var(--gold);font-family:var(--font-display);font-size:1.1rem;margin-bottom:0.5rem}
+
+/* Accordion */
+.accordion{margin:1.5rem 0}
+.accordion-item{border:1px solid var(--glass-border);border-radius:8px;margin-bottom:0.5rem;overflow:hidden}
+.accordion-btn{
+width:100%;padding:1rem 1.25rem;background:var(--glass);border:none;
+color:var(--cream);font-family:var(--font-body);font-size:0.95rem;font-weight:500;
+text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+min-height:48px;transition:background var(--timing-fast);
+}
+.accordion-btn:hover{background:rgba(255,255,255,0.08)}
+.accordion-btn:focus-visible{outline:2px solid var(--pink);outline-offset:-2px}
+.accordion-btn .icon{
+font-size:1.25rem;color:var(--pink);transition:transform var(--timing-fast);flex-shrink:0;
+}
+.accordion-item.open .accordion-btn .icon{transform:rotate(45deg)}
+.accordion-panel{
+max-height:0;overflow:hidden;transition:max-height var(--timing-slow) ease;
+}
+.accordion-panel-inner{padding:1rem 1.25rem 1.5rem;color:var(--cream-dim);line-height:1.7}
+.accordion-panel-inner p{margin-bottom:0.75rem}
+.accordion-panel-inner p:last-child{margin-bottom:0}
+
+/* Responsive */
+@media(max-width:768px){
+  .hero{padding:4rem 0 3rem}
+  section{padding:3rem 0}
+  .card{padding:1.5rem}
+  .edu-box{padding:1.5rem}
+  .flow{flex-direction:column}
+  .flow-arrow{transform:rotate(90deg)}
+  .score-bar .label{width:90px;font-size:0.8rem}
+  .tier{flex-direction:column;align-items:flex-start}
+  .two-col{grid-template-columns:1fr !important}
+}
+
+/* Motion + contrast */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;scroll-behavior:auto !important;
+  }
+}
+@media(prefers-contrast:high){
+  :root{--glass-border:rgba(255,255,255,0.4);--cream-dim:#e8e3db}
+  .card,.edu-box,.accordion-item{border-width:2px}
+  .toc{border-bottom-width:2px}
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- Hero -->
+<header class="hero">
+<div class="container">
+<div class="badge">Internal Knowledge Base v0.1</div>
+<h1>OpenTrustToken</h1>
+<p class="subtitle">Everything your team needs to understand the protocol, the architecture, and the business model. Written for humans, not engineers.</p>
+</div>
+</header>
+
+<!-- Sticky Nav -->
+<nav class="toc" aria-label="Page sections">
+<div class="toc-inner">
+<a href="#big-picture">The Big Picture</a>
+<a href="#concepts">Key Concepts</a>
+<a href="#protocol">The Protocol</a>
+<a href="#scoring">Scoring System</a>
+<a href="#kyc">KYC Monetization</a>
+<a href="#architecture">Architecture</a>
+<a href="#scaling">Scaling</a>
+<a href="#competitive">Competitive Position</a>
+<a href="#glossary">Glossary</a>
+</div>
+</nav>
+
+<main id="main">
+
+<!-- 1. Big Picture -->
+<section id="big-picture">
+<div class="container">
+<p class="section-label">Start Here</p>
+<h2>The Big Picture</h2>
+<p>AI agents are learning to buy things on behalf of humans. Stripe, Coinbase, and Skyfire are building the payment plumbing (how agents pay). Nobody has built the trust layer (should agents pay this particular site?).</p>
+<p style="margin-top:1rem">OpenTrustToken fills that gap. One API call. Under 200 milliseconds. The agent gets a signed, verifiable answer: this site is safe, proceed with caution, or do not transact.</p>
+
+<div class="card-grid" style="margin-top:2rem">
+<div class="card">
+<h3>The Protocol Spec</h3>
+<p>Defines the trust token format, how sites publish them, how agents read them, and how signatures prove authenticity. This is the "what" document.</p>
+<p><strong>Analogy:</strong> The rulebook for a new sport. Everyone who plays agrees to these rules.</p>
+</div>
+<div class="card">
+<h3>The Architecture</h3>
+<p>Maps every server, database, and service that powers the verification system. Includes exact scaling plans from 10K to 10M+ domains. This is the "how" document.</p>
+<p><strong>Analogy:</strong> The blueprint for the stadium where the sport is played, including plans for when the stadium needs to get bigger.</p>
+</div>
+<div class="card">
+<h3>Scoring and KYC</h3>
+<p>Details how trust scores are calculated, why new sites score low, and how identity verification (KYC) unlocks higher scores. This is the "why we make money" document.</p>
+<p><strong>Analogy:</strong> The credit scoring system, plus the revenue model for how we charge sites that want a better score.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 2. Key Concepts -->
+<section id="concepts">
+<div class="container">
+<p class="section-label">Foundation</p>
+<h2>Key Concepts Explained</h2>
+<p>These are the technical building blocks behind OpenTrustToken. You do not need to become an engineer, but understanding these concepts will let you speak confidently about the product.</p>
+
+<div class="accordion" role="list">
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is an RFC? (And why does our spec look like one?)</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p><strong>RFC</strong> stands for "Request for Comments." It is the standard format used to propose and define internet protocols since the 1960s. HTTP (how web pages load), SMTP (how email works), and TLS (how encryption works) were all defined as RFCs.</p>
+<p>When we write our protocol spec in RFC style, we are signaling to the technical community: "This is a serious standard, not a product pitch." It means we define every field, every response code, every edge case. Engineers can read it and implement it without guessing.</p>
+<p><strong>Why it matters for marketing:</strong> When you tell a CTO "we have an RFC-style spec," they immediately understand that this is an open, implementable standard. It is the difference between saying "we have a product" and "we have a protocol." Protocols become infrastructure. Products get replaced.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What are W3C Verifiable Credentials?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p>The <strong>W3C</strong> (World Wide Web Consortium) is the organization that defines web standards. They define how HTML works, how CSS works, and how web browsers should behave. They are the closest thing the internet has to a governing body for technical standards.</p>
+<p><strong>Verifiable Credentials (VCs)</strong> are a W3C standard for digital certificates that can be independently verified without calling the original issuer. Think of it like a digital notarized document.</p>
+<p>A physical analogy: Your driver's license was issued by the DMV. A bartender can look at it and trust it without calling the DMV because it has security features (holograms, specific format) that are extremely hard to forge. Verifiable Credentials work the same way, but digitally and with math instead of holograms.</p>
+<p><strong>Our trust token IS a Verifiable Credential.</strong> This means any system that already understands VCs can read our tokens without custom integration. We are building on an existing standard rather than inventing our own format.</p>
+<p><strong>Why it matters for marketing:</strong> "Our trust tokens follow the W3C Verifiable Credentials standard" tells technical buyers we are not reinventing the wheel. We follow the same standard that governments and banks are adopting for digital identity.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is Ed25519 cryptographic signing?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p>Cryptographic signing is how you prove a document has not been tampered with and was created by who it claims to be from.</p>
+<p>Imagine you write a letter, seal it with a unique wax stamp that only you own, and mail it. The recipient can see the unbroken seal and know: (1) this letter really came from you, and (2) nobody opened or changed it in transit. Digital signatures do the same thing with mathematics.</p>
+<p><strong>Ed25519</strong> is a specific signing algorithm. There are many algorithms to choose from (RSA, ECDSA, Ed25519, etc.). Ed25519 is the modern choice because it is fast (signing takes microseconds), the signatures are small (64 bytes), the keys are small, and it has no known vulnerabilities. It was designed by Daniel Bernstein, one of the most respected cryptographers alive.</p>
+<p><strong>How it works in OTT:</strong> We have a private key (secret, locked in a hardware vault) and a public key (published openly). When we score a website, we sign the trust token with our private key. Anyone with our public key can verify the signature is authentic. If even a single character of the token were changed after signing, the verification would fail.</p>
+<p><strong>Why it matters for marketing:</strong> "Cryptographically signed trust tokens" means nobody can forge a trust score. Not the site owner, not a middleman, not even a hacker who intercepts the token. Only OpenTrustToken can produce valid tokens, and everyone can verify them. This is the core trust guarantee of the entire product.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is DID-based key management?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p><strong>DID</strong> stands for Decentralized Identifier. It is a W3C standard for creating digital identities that do not depend on any single authority.</p>
+<p>Think of it this way: your email address (you at a provider) depends on that provider. If the provider disappears, your identity disappears. A DID is like an email address that you own permanently, independent of any company.</p>
+<p>Our DID is <code style="font-family:var(--font-mono);color:var(--purple);font-size:0.9em">did:web:opentrusttoken.com</code>. This is our digital identity. Attached to this identity is our public signing key. When an agent receives a trust token signed by us, it checks our DID to find our public key and verify the signature.</p>
+<p><strong>Key management</strong> is the practice of securely storing, rotating, and publishing cryptographic keys. Our private keys live in an <strong>HSM</strong> (Hardware Security Module), which is a physical device designed so that keys can never be extracted from it, even if someone physically steals the device.</p>
+<p><strong>Why it matters for marketing:</strong> DID-based key management means agents worldwide can verify our tokens without any prior relationship with us. They look up our DID, find our public key, and verify. No API calls, no accounts, no contracts needed for basic verification. This is what makes the protocol truly open.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is a .well-known URI?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p>A <strong>.well-known URI</strong> is a standardized location on any website where specific information can be found. It is defined by an internet standard (RFC 8615) that says: if you want to publish machine-readable metadata about your site, put it in the <code style="font-family:var(--font-mono);color:var(--purple);font-size:0.9em">/.well-known/</code> directory.</p>
+<p>Examples that already exist:</p>
+<ul style="margin:0.5rem 0 0.5rem 1.5rem">
+<li><code style="font-family:var(--font-mono);font-size:0.9em">/.well-known/security.txt</code> tells security researchers how to report vulnerabilities</li>
+<li><code style="font-family:var(--font-mono);font-size:0.9em">/.well-known/apple-app-site-association</code> tells iOS which app to open for a website</li>
+<li><code style="font-family:var(--font-mono);font-size:0.9em">/.well-known/openid-configuration</code> tells login systems how to authenticate</li>
+</ul>
+<p style="margin-top:0.75rem">Our addition: <code style="font-family:var(--font-mono);color:var(--purple);font-size:0.9em">/.well-known/ott.json</code> tells AI agents whether this site is trustworthy. Sites publish their signed trust token here. Any agent visiting any website can check this one URL and get an instant trust assessment.</p>
+<p><strong>Why it matters for marketing:</strong> We are not asking sites to install complex software. We are asking them to host a single JSON file at a standard location. That is as simple as web integration gets. "Add one file to your site" is a much easier sell than "integrate our SDK."</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is an HSM?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p>An <strong>HSM</strong> (Hardware Security Module) is a physical, tamper-resistant device that stores cryptographic keys. Banks, certificate authorities, and governments use HSMs to protect their most sensitive secrets.</p>
+<p>The key property: the private key is generated inside the HSM and never leaves it. When we need to sign a trust token, we send the data into the HSM, it signs it internally, and sends back only the signature. Even our own engineers cannot extract the key. If someone physically tampers with the device, it destroys the key automatically.</p>
+<p>Cloud providers offer HSM-as-a-service (AWS CloudHSM costs roughly $1.50/hour). We do not need to own physical hardware, but we get the same security guarantees that banks use.</p>
+<p><strong>Why it matters for marketing:</strong> "Bank-grade key security" is not a buzzword when you actually use HSMs. This is the same technology protecting Visa's transaction signing keys. When a payment rail asks "how do you protect your signing keys?" the answer "HSM with FIPS 140-2 Level 3 certification" ends the conversation.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is KYC?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p><strong>KYC</strong> stands for "Know Your Customer." It is a regulatory and business practice where a company verifies the real-world identity of its clients. Banks do KYC when you open an account (checking your ID, verifying your address, confirming your Social Security number).</p>
+<p>In our context, KYC means verifying the identity of the people behind a website. When a site owner wants to move from the free tier to a paid verification tier, we verify:</p>
+<ul style="margin:0.5rem 0 0.5rem 1.5rem">
+<li><strong>Enhanced ($29/mo):</strong> Business name, address, and phone are real</li>
+<li><strong>KYC-Verified ($99/mo):</strong> Government ID, business documents, bank account, video call</li>
+<li><strong>Enterprise ($499/mo):</strong> All of the above plus on-site audit and continuous monitoring</li>
+</ul>
+<p style="margin-top:0.75rem"><strong>Why this is the monetization engine:</strong> New sites automatically score low because they have no history. The only way to quickly raise their score is to verify their identity. Sites that want AI agents to send them money are highly motivated to prove they are legitimate. We charge for this verification, and the incentives are perfectly aligned: higher verification means lower fraud risk for everyone.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is an API and an SDK?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p>An <strong>API</strong> (Application Programming Interface) is a way for one computer to talk to another over the internet. When an AI agent wants to check if a website is trustworthy, it sends a request to our API (like visiting a URL) and gets back a structured answer (the trust token).</p>
+<p>Think of it as a drive-through window. The agent pulls up, asks a question ("Is merchant.com safe?"), and gets an answer in a standard format. The agent does not need to know how we computed the answer. It just needs to know where to ask and how to read the response.</p>
+<p>An <strong>SDK</strong> (Software Development Kit) is a pre-built library that makes calling an API easier. Instead of an agent developer writing 20 lines of code to call our API, parse the response, check the signature, and handle errors, they install our SDK and write 3 lines of code. SDKs exist for different programming languages (we will offer Python and JavaScript SDKs).</p>
+<p><strong>Why it matters for marketing:</strong> "One API call" and "three lines of code" are the phrases that sell to technical decision makers. Integration cost is their biggest concern. The easier the integration, the faster the adoption.</p>
+</div>
+</div>
+</div>
+
+<div class="accordion-item" role="listitem">
+<button class="accordion-btn" aria-expanded="false">
+<span>What is JSON and JSON-LD?</span>
+<span class="icon" aria-hidden="true">+</span>
+</button>
+<div class="accordion-panel" role="region">
+<div class="accordion-panel-inner">
+<p><strong>JSON</strong> (JavaScript Object Notation) is the most common format for structured data on the web. It looks like this:</p>
+<div class="code-block" style="margin:0.75rem 0">
+<span class="key">"domain"</span>: <span class="val">"example.com"</span>,<br>
+<span class="key">"trustScore"</span>: <span class="val">82</span>,<br>
+<span class="key">"recommendation"</span>: <span class="val">"PROCEED"</span>
+</div>
+<p>It is readable by both humans and machines. Every programming language can read and write JSON.</p>
+<p><strong>JSON-LD</strong> ("JSON for Linked Data") adds a layer of meaning to JSON. The <code style="font-family:var(--font-mono);font-size:0.9em">@context</code> field at the top of our trust token says "here is where to find the definition of what each field means." This allows any system in the world to understand our data without prior coordination.</p>
+<p>Think of JSON as a form with labeled fields. JSON-LD adds a link to the instruction manual that explains what each label means.</p>
+<p><strong>Why it matters for marketing:</strong> JSON-LD is what Google uses for rich search results and what schema.org uses for product data. By adopting JSON-LD, our trust tokens are automatically compatible with a massive existing infrastructure of tools and standards.</p>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- 3. The Protocol -->
+<section id="protocol">
+<div class="container">
+<p class="section-label">Document 1 of 3</p>
+<h2>The Protocol</h2>
+<p>The protocol defines how trust information flows from our servers to AI agents. There are two paths an agent can take.</p>
+
+<div class="edu-box">
+<h4>Two Ways Agents Verify Trust</h4>
+<div class="two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1rem">
+<div>
+<p><strong style="color:var(--pink-light)">Path A: Direct Discovery</strong></p>
+<p>The agent visits the site and reads the trust token file directly. No API call to us needed. The agent verifies the cryptographic signature on its own.</p>
+<p style="margin-top:0.5rem;font-size:0.9rem"><strong>Best for:</strong> Speed. Privacy. Decentralization.</p>
+</div>
+<div>
+<p><strong style="color:var(--pink-light)">Path B: API Call</strong></p>
+<p>The agent calls our API and we return the latest trust data. This path supports bulk checks, fresher data, and richer metadata.</p>
+<p style="margin-top:0.5rem;font-size:0.9rem"><strong>Best for:</strong> Freshness. Bulk operations. Enriched data.</p>
+</div>
+</div>
+</div>
+
+<h3 style="margin-top:2rem">How a Verification Happens (Step by Step)</h3>
+<div class="flow">
+<div class="flow-step">Agent wants to pay merchant.com</div>
+<span class="flow-arrow" aria-hidden="true">&rarr;</span>
+<div class="flow-step">Agent calls OTT API</div>
+<span class="flow-arrow" aria-hidden="true">&rarr;</span>
+<div class="flow-step highlight">OTT returns score + recommendation</div>
+<span class="flow-arrow" aria-hidden="true">&rarr;</span>
+<div class="flow-step">Agent decides: proceed, pause, or refuse</div>
+</div>
+
+<p style="margin-top:1.5rem">The entire check takes under 200 milliseconds. For context, a human blink takes 300 to 400 milliseconds. The agent gets its answer before you finish blinking.</p>
+
+<h3 style="margin-top:2rem">What the Trust Token Looks Like</h3>
+<p>This is a simplified view of what an agent receives when it checks a domain:</p>
+
+<div class="code-block">
+<span class="comment">// Trust token for example.com</span><br>
+<span class="key">"domain"</span>: <span class="val">"example.com"</span><br>
+<span class="key">"trustScore"</span>: <span class="val">82</span><br>
+<span class="key">"verificationTier"</span>: <span class="val">"enhanced"</span><br>
+<span class="key">"recommendation"</span>: <span class="val">"PROCEED"</span><br>
+<span class="key">"agentGuidance"</span>: <span class="val">"Strong technical signals, clean reputation.<br>&nbsp;&nbsp;Suitable for transactions under $500."</span><br>
+<span class="key">"flags"</span>: <span class="val">[]</span> <span class="comment">// no warnings</span><br>
+<span class="key">"proof"</span>: <span class="val">"z3FXQ...signed"</span> <span class="comment">// cryptographic signature</span>
+</div>
+
+<p style="margin-top:1rem">The token also includes a full breakdown of each signal category (domain age, SSL, DNS security, content quality, reputation, and identity verification) so agents can make nuanced decisions rather than relying on a single number.</p>
+
+<h3 style="margin-top:2rem">Three Possible Recommendations</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Score Range</th><th>Recommendation</th><th>What the Agent Does</th></tr></thead>
+<tbody>
+<tr><td><strong>75 to 100</strong></td><td style="color:var(--purple)">PROCEED</td><td>Transaction authorized. No additional checks needed.</td></tr>
+<tr><td><strong>40 to 74</strong></td><td style="color:var(--gold)">CAUTION</td><td>Transaction allowed with limits, or agent asks the human for confirmation.</td></tr>
+<tr><td><strong>0 to 39</strong></td><td style="color:var(--pink)">DENY</td><td>Transaction refused. Agent will not send money to this site.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="edu-box" style="margin-top:2rem">
+<h4>Why the Signature Matters</h4>
+<div class="analogy">
+<strong>Without signatures:</strong> A scam site could create a fake trust token claiming a score of 99. Agents would have no way to know it was forged. It would be like anyone being able to print their own driver's license.<br><br>
+<strong>With signatures:</strong> Only OpenTrustToken can produce valid tokens. A scam site can put any file at /.well-known/ott.json, but the agent will check the cryptographic signature and immediately reject it. It is mathematically impossible to forge.
+</div>
+</div>
+</div>
+</section>
+
+<!-- 4. Scoring -->
+<section id="scoring">
+<div class="container">
+<p class="section-label">Document 2 of 3 (Part 1)</p>
+<h2>How Trust Scores Work</h2>
+<p>Every site gets a score from 0 to 100 based on six signal categories. Each category measures something different about the site's trustworthiness.</p>
+
+<div class="table-wrap" style="margin-top:1.5rem">
+<table>
+<thead><tr><th>Signal</th><th>Weight</th><th>What It Measures</th><th>Plain English</th></tr></thead>
+<tbody>
+<tr><td><strong>Reputation</strong></td><td>25%</td><td>Malware scans, phishing databases, spam lists</td><td>Has this site been caught doing anything bad?</td></tr>
+<tr><td><strong>Identity</strong></td><td>25%</td><td>KYC status, business documents, verified contact</td><td>Do we know who runs this site?</td></tr>
+<tr><td><strong>Domain Age</strong></td><td>15%</td><td>WHOIS registration date, historical presence</td><td>How long has this site existed?</td></tr>
+<tr><td><strong>Content</strong></td><td>15%</td><td>Privacy policy, terms, contact info</td><td>Does this site look like a real business?</td></tr>
+<tr><td><strong>SSL/TLS</strong></td><td>10%</td><td>Valid certificate, encryption configuration</td><td>Is the site's connection secure?</td></tr>
+<tr><td><strong>DNS Security</strong></td><td>10%</td><td>Email authentication, DNSSEC</td><td>Is the site's domain properly configured?</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="margin-top:2rem">The Tier Ceiling System</h3>
+<p>This is the most important concept for understanding our business model. Every site has a <strong>score ceiling</strong> based on its verification tier. Even if a site has perfect signals, its score is capped at its tier ceiling.</p>
+
+<div class="tier-stack">
+<div class="tier t-enterprise">
+<span class="tier-name" style="color:var(--gold-bright)">Enterprise</span>
+<span class="tier-price">$499/mo</span>
+<span class="tier-ceiling">Ceiling: 100</span>
+</div>
+<div class="tier t-kyc">
+<span class="tier-name" style="color:var(--pink-light)">KYC-Verified</span>
+<span class="tier-price">$99/mo</span>
+<span class="tier-ceiling">Ceiling: 95</span>
+</div>
+<div class="tier t-enhanced">
+<span class="tier-name" style="color:var(--purple)">Enhanced</span>
+<span class="tier-price">$29/mo</span>
+<span class="tier-ceiling">Ceiling: 80</span>
+</div>
+<div class="tier t-free">
+<span class="tier-name">Automated (Free)</span>
+<span class="tier-price">$0</span>
+<span class="tier-ceiling">Ceiling: 60</span>
+</div>
+</div>
+
+<div class="edu-box">
+<h4>Why the Ceiling Matters (The Conversion Moment)</h4>
+<div class="analogy">
+<strong>Picture this:</strong> A site owner logs into their dashboard. Their signals are strong: 7 years old, clean reputation, full business info. Their raw score should be 72. But they see: "Your score: 60. Tier ceiling: 60. Your signals support a score of 72. Upgrade to Enhanced ($29/mo) to unlock your full score."<br><br>
+That is a 12-point difference between "agents will ask users for confirmation before paying you" and "agents will pay you automatically." For $29/mo. That is an easy yes.
+</div>
+</div>
+
+<h3 style="margin-top:2rem">Score Examples</h3>
+
+<div class="score-example">
+<h4>Established Business (Free Tier)</h4>
+<p style="color:var(--cream-dim);font-size:0.85rem;margin-bottom:1rem">oldshop.com -- registered 2018, clean history, no identity verification</p>
+<div class="score-bar"><span class="label">Domain Age</span><div class="bar-track"><div class="bar-fill high" style="width:95%"></div></div><span class="pts">95</span></div>
+<div class="score-bar"><span class="label">SSL</span><div class="bar-track"><div class="bar-fill high" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="label">DNS</span><div class="bar-track"><div class="bar-fill high" style="width:80%"></div></div><span class="pts">80</span></div>
+<div class="score-bar"><span class="label">Content</span><div class="bar-track"><div class="bar-fill high" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="label">Reputation</span><div class="bar-track"><div class="bar-fill high" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="label">Identity</span><div class="bar-track"><div class="bar-fill zero" style="width:0%"></div></div><span class="pts">0</span></div>
+<div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+<span style="color:var(--cream-dim);font-size:0.9rem">Raw: 72 | Capped at tier ceiling</span>
+<span style="font-family:var(--font-mono);font-size:1.25rem;color:var(--gold)">Final: 60 (CAUTION)</span>
+</div>
+</div>
+
+<div class="score-example">
+<h4>New Startup (No KYC)</h4>
+<p style="color:var(--cream-dim);font-size:0.85rem;margin-bottom:1rem">newstartup.io -- registered 2 weeks ago, good technical setup, no verification</p>
+<div class="score-bar"><span class="label">Domain Age</span><div class="bar-track"><div class="bar-fill zero" style="width:0%"></div></div><span class="pts">0</span></div>
+<div class="score-bar"><span class="label">SSL</span><div class="bar-track"><div class="bar-fill high" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="label">DNS</span><div class="bar-track"><div class="bar-fill mid" style="width:40%"></div></div><span class="pts">40</span></div>
+<div class="score-bar"><span class="label">Content</span><div class="bar-track"><div class="bar-fill mid" style="width:70%"></div></div><span class="pts">70</span></div>
+<div class="score-bar"><span class="label">Reputation</span><div class="bar-track"><div class="bar-fill mid" style="width:50%"></div></div><span class="pts">50</span></div>
+<div class="score-bar"><span class="label">Identity</span><div class="bar-track"><div class="bar-fill zero" style="width:0%"></div></div><span class="pts">0</span></div>
+<div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+<span style="color:var(--cream-dim);font-size:0.9rem">Raw: 37 | Flags: NEW_DOMAIN, NO_IDENTITY</span>
+<span style="font-family:var(--font-mono);font-size:1.25rem;color:var(--pink)">Final: 37 (DENY)</span>
+</div>
+</div>
+
+<div class="score-example">
+<h4>New Startup (KYC Verified at $99/mo)</h4>
+<p style="color:var(--cream-dim);font-size:0.85rem;margin-bottom:1rem">Same site, same age, but owner completed identity verification</p>
+<div class="score-bar"><span class="label">Domain Age</span><div class="bar-track"><div class="bar-fill zero" style="width:0%"></div></div><span class="pts">0</span></div>
+<div class="score-bar"><span class="label">SSL</span><div class="bar-track"><div class="bar-fill high" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="label">DNS</span><div class="bar-track"><div class="bar-fill mid" style="width:40%"></div></div><span class="pts">40</span></div>
+<div class="score-bar"><span class="label">Content</span><div class="bar-track"><div class="bar-fill mid" style="width:70%"></div></div><span class="pts">70</span></div>
+<div class="score-bar"><span class="label">Reputation</span><div class="bar-track"><div class="bar-fill mid" style="width:50%"></div></div><span class="pts">50</span></div>
+<div class="score-bar"><span class="label">Identity</span><div class="bar-track"><div class="bar-fill high" style="width:85%"></div></div><span class="pts">85</span></div>
+<div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+<span style="color:var(--cream-dim);font-size:0.9rem">Raw: 58 | Ceiling: 95 | Flag: NEW_DOMAIN</span>
+<span style="font-family:var(--font-mono);font-size:1.25rem;color:var(--gold)">Final: 58 (CAUTION)</span>
+</div>
+</div>
+
+<div class="edu-box">
+<h4>The Key Insight for Marketing</h4>
+<p>Notice what KYC did for the new startup: it moved them from <strong style="color:var(--pink)">DENY</strong> (agents refuse to pay) to <strong style="color:var(--gold)">CAUTION</strong> (agents will pay with guardrails). That is the difference between zero agent-driven revenue and some agent-driven revenue. For $99/mo, a new merchant unlocks access to the entire AI agent economy. That is the pitch.</p>
+</div>
+</div>
+</section>
+
+<!-- 5. KYC Monetization -->
+<section id="kyc">
+<div class="container">
+<p class="section-label">Document 2 of 3 (Part 2)</p>
+<h2>KYC as the Revenue Engine</h2>
+<p>The business model has three revenue streams. KYC verification tiers generate the most predictable revenue because they are recurring subscriptions tied to a real need.</p>
+
+<h3 style="margin-top:2rem">Revenue Stream 1: Verification Tiers</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Tier</th><th>Price</th><th>What We Check</th><th>Target Conversion</th></tr></thead>
+<tbody>
+<tr><td>Automated</td><td>Free</td><td>SSL, DNS, domain age, reputation databases</td><td>100% (everyone starts here)</td></tr>
+<tr><td>Enhanced</td><td>$29/mo</td><td>Business registry, address, phone, social media</td><td>20% of free tier</td></tr>
+<tr><td>KYC-Verified</td><td>$99/mo</td><td>Government ID, business docs, bank, video call</td><td>5% of free tier</td></tr>
+<tr><td>Enterprise</td><td>$499/mo</td><td>Annual audit, continuous monitoring, insurance</td><td>1% of free tier</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="margin-top:2rem">Revenue Stream 2: API Access</h3>
+<p>Agent developers and payment companies pay for API access to check sites at scale.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Tier</th><th>Price</th><th>Monthly Queries</th><th>Target Customer</th></tr></thead>
+<tbody>
+<tr><td>Free</td><td>$0</td><td>10,000</td><td>Indie developers, testing</td></tr>
+<tr><td>Pro</td><td>$49/mo</td><td>500,000</td><td>Small agent companies</td></tr>
+<tr><td>Enterprise</td><td>$500 to $5,000/mo</td><td>Unlimited</td><td>Stripe, Coinbase, Skyfire</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="margin-top:2rem">Revenue Stream 3: Transaction Insurance</h3>
+<p>Enterprise-tier sites get transaction insurance: if an agent transacts with a verified site and gets defrauded, OTT covers up to $50,000. We charge $0.10 per verified transaction and partner with an insurance underwriter. This stream only activates at scale (100K+ insured transactions/month).</p>
+
+<h3 style="margin-top:2rem">Year 1 Revenue Projection</h3>
+<div class="card" style="background:var(--navy);border-color:var(--gold);border-width:2px">
+<div class="two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+<div>
+<h4 style="color:var(--cream)">At 10,000 Domains</h4>
+<p style="font-size:0.9rem">1,500 Enhanced x $29 = $43,500/mo</p>
+<p style="font-size:0.9rem">400 KYC x $99 = $39,600/mo</p>
+<p style="font-size:0.9rem">50 Enterprise x $499 = $24,950/mo</p>
+<p style="font-size:0.9rem">API revenue = ~$19,800/mo</p>
+<p style="font-size:0.9rem;margin-top:0.75rem;color:var(--gold);font-weight:600">Total: ~$128K/mo (~$1.5M ARR)</p>
+</div>
+<div>
+<h4 style="color:var(--cream)">At 100,000 Domains</h4>
+<p style="font-size:0.9rem">15,000 Enhanced x $29 = $435K/mo</p>
+<p style="font-size:0.9rem">4,000 KYC x $99 = $396K/mo</p>
+<p style="font-size:0.9rem">500 Enterprise x $499 = $250K/mo</p>
+<p style="font-size:0.9rem">API + Insurance = ~$199K/mo</p>
+<p style="font-size:0.9rem;margin-top:0.75rem;color:var(--gold);font-weight:600">Total: ~$1.28M/mo (~$15M ARR)</p>
+</div>
+</div>
+</div>
+
+<div class="edu-box" style="margin-top:1.5rem">
+<h4>The Flywheel</h4>
+<p>More verified sites means agents trust the network more. More trusting agents means more transactions flow through verified sites. More transactions means more sites are motivated to get verified. More verified sites means more data, better scores, and higher accuracy. Each layer reinforces the others.</p>
+<p style="margin-top:0.75rem">The first company to reach critical mass in this loop owns the market. The dataset is the moat. The protocol is open, but the verified registry of 100K+ sites with real KYC data is not something a competitor can copy. They have to build it from scratch.</p>
+</div>
+</div>
+</section>
+
+<!-- 6. Architecture -->
+<section id="architecture">
+<div class="container">
+<p class="section-label">Document 3 of 3</p>
+<h2>System Architecture</h2>
+<p>The system has 10 major components. Here is what each one does, explained without jargon.</p>
+
+<div class="card-grid">
+<div class="card">
+<h3 style="font-size:1.1rem">CDN (Content Delivery Network)</h3>
+<p>A network of servers worldwide that cache our data close to users. When an agent in Tokyo checks a site, the response comes from a server in Tokyo, not from our headquarters. This is how we hit sub-200ms response times globally.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">API Gateway</h3>
+<p>The front door. Every request enters here first. It checks who is asking (authentication), whether they have asked too many times (rate limiting), and routes the request to the right service. Think of it as the receptionist.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Verify Service</h3>
+<p>Handles the core question: "Is this domain trustworthy?" It checks the cache first (fast), falls back to the database if needed (slower), and returns the trust token. This is the most-used component.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Registration Service</h3>
+<p>Handles new site sign-ups. When a site owner registers, this service generates a verification code and confirms they actually own the domain (via DNS record or file upload).</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Signal Collectors</h3>
+<p>Six independent workers that gather trust data: domain age, SSL status, DNS configuration, website content, reputation (malware/phishing checks), and identity verification status. They run on schedules and feed data into the scoring engine.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Scoring Engine</h3>
+<p>Takes all six signals, applies weights (reputation and identity count the most), applies the tier ceiling, checks for critical flags, and produces the final trust score. Pure math, no human judgment.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Signing Service</h3>
+<p>The most secure component. Takes a computed score and stamps it with our cryptographic signature through the HSM. This signature is what makes tokens unforgeable. Private keys never leave the hardware vault.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Cache (Redis)</h3>
+<p>An in-memory data store that holds every active trust token. Because it runs in memory (RAM), lookups take 1 to 2 milliseconds compared to 15ms for a database query. 99% of verification requests are served from cache.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Database (PostgreSQL)</h3>
+<p>The permanent record. Stores all domains, signals, scores, KYC submissions, API keys, and audit logs. The cache is fast but temporary. The database is the source of truth.</p>
+</div>
+<div class="card">
+<h3 style="font-size:1.1rem">Message Queue</h3>
+<p>The internal mail system. When a signal collector finishes a check, it drops a message in the queue. The scoring engine picks it up and recalculates. When a score changes, another message triggers re-signing. This keeps everything loosely connected and independently scalable.</p>
+</div>
+</div>
+
+<div class="edu-box" style="margin-top:1.5rem">
+<h4>Why This Architecture Matters for the Pitch</h4>
+<p>When a CTO at Stripe or Coinbase evaluates a partner, they look at the architecture. "Can this handle our volume?" is always the first question. By designing every component to scale independently, we can answer: "We handle 60 queries per minute today and 6,000 per minute tomorrow without rebuilding anything. We just add more instances."</p>
+<p style="margin-top:0.5rem">The phrase to use: <strong style="color:var(--pink-light)">"horizontally scalable at every layer."</strong> That means we grow by adding more machines, not by buying bigger machines. It is the standard that enterprise buyers expect.</p>
+</div>
+</div>
+</section>
+
+<!-- 7. Scaling -->
+<section id="scaling">
+<div class="container">
+<p class="section-label">Growth Plan</p>
+<h2>Scaling Roadmap</h2>
+<p>The infrastructure grows in four stages. Each stage matches a business milestone. Infrastructure cost stays proportional to revenue at every stage.</p>
+
+<div class="scale-cards">
+<div class="scale-card">
+<div class="stage">Stage 1: Launch</div>
+<div class="domains">10K domains</div>
+<div class="cost">~$360/mo</div>
+<div class="detail">Single instances for everything. Redis handles 99% of reads. The whole system runs on $12/day.</div>
+</div>
+<div class="scale-card">
+<div class="stage">Stage 2: Traction</div>
+<div class="domains">100K domains</div>
+<div class="cost">~$3,450/mo</div>
+<div class="detail">Multiple instances behind load balancers. HSM for production-grade signing. Redis cluster.</div>
+</div>
+<div class="scale-card">
+<div class="stage">Stage 3: Scale</div>
+<div class="domains">1M domains</div>
+<div class="cost">~$17K/mo</div>
+<div class="detail">Auto-scaling groups. Database sharding. 50+ signal collector workers. Kafka for event streaming.</div>
+</div>
+<div class="scale-card">
+<div class="stage">Stage 4: Dominance</div>
+<div class="domains">10M+ domains</div>
+<div class="cost">$50K to $200K/mo</div>
+<div class="detail">Multi-region deployment. Dedicated SRE team. SOC 2 compliance. You are now trust infrastructure.</div>
+</div>
+</div>
+
+<div class="edu-box">
+<h4>Infrastructure Cost vs. Revenue</h4>
+<p>At Stage 1, infrastructure costs $360/mo against projected revenue of $128K/mo (0.3% of revenue). At Stage 3, costs reach $17K/mo against $1.28M/mo (1.3% of revenue). Infrastructure costs grow linearly; revenue grows faster because each new verified site adds recurring subscription revenue while adding minimal server load.</p>
+<p style="margin-top:0.5rem">This is the power of a cache-first architecture. The expensive work (crawling sites, checking reputation, performing KYC) happens infrequently. The cheap work (returning cached trust tokens) happens millions of times from the same data.</p>
+</div>
+</div>
+</section>
+
+<!-- 8. Competitive Position -->
+<section id="competitive">
+<div class="container">
+<p class="section-label">Market Context</p>
+<h2>Competitive Positioning</h2>
+<p>Other companies touch parts of this space. None of them are building what we are building.</p>
+
+<div class="table-wrap" style="margin-top:1.5rem">
+<table>
+<thead><tr><th>Company</th><th>What They Do</th><th>Why They Are Not Us</th></tr></thead>
+<tbody>
+<tr><td><strong>Google Safe Browsing</strong></td><td>Binary safe/unsafe flag</td><td>No score, no identity, no agent API, no payment integration</td></tr>
+<tr><td><strong>Norton Safe Web</strong></td><td>Browser safety ratings for humans</td><td>Human-focused. No machine-readable API for agents.</td></tr>
+<tr><td><strong>Scamadviser</strong></td><td>Trust scores for humans</td><td>No cryptographic proof. No payment rail integration.</td></tr>
+<tr><td><strong>SSL Certificate Authorities</strong></td><td>Validate domain ownership</td><td>Only validates certificates, not site trustworthiness.</td></tr>
+<tr><td><strong>Stripe Radar</strong></td><td>Fraud detection on transactions</td><td>Post-transaction, not pre-transaction. Stripe-only.</td></tr>
+<tr><td><strong>Coinbase x402</strong></td><td>Agent payment protocol</td><td>Payment rail, not trust layer. We complement them.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="edu-box" style="margin-top:2rem">
+<h4>The Neutrality Advantage</h4>
+<p>A trust authority must be neutral to be credible. Stripe cannot build a trust layer because they would be judging which merchants agents should pay, and they process the payments. That is a conflict of interest. Same problem for Coinbase and Google.</p>
+<p style="margin-top:0.75rem">The analogy: SSL certificates come from independent certificate authorities (DigiCert, Let's Encrypt), not from Chrome or Safari. Browsers trust CAs because CAs have no stake in which sites you visit. OTT is the CA model applied to agent payments.</p>
+<p style="margin-top:0.75rem"><strong>The one-liner for your pitch deck:</strong></p>
+<p style="margin-top:0.5rem;font-size:1.1rem;color:var(--cream);font-weight:500">"Every agent payment company is building the rails. We built the road signs."</p>
+</div>
+
+<h3 style="margin-top:2rem">Why Speed Matters</h3>
+<p>The defense against big players copying this is not the code (the protocol is open). The defense is the dataset. Every site that completes KYC verification through us adds to a registry that no competitor can replicate without doing the same work from scratch. At 10K verified sites, we have a useful dataset. At 100K, we have a moat. At 1M, we are the standard.</p>
+<p style="margin-top:0.75rem">First mover wins in trust infrastructure because trust compounds. The longer a site has been verified, the more data we have on it, the more accurate the score, the more agents trust our system, the more sites want to join.</p>
+</div>
+</section>
+
+<!-- 9. Glossary -->
+<section id="glossary">
+<div class="container">
+<p class="section-label">Reference</p>
+<h2>Quick Glossary</h2>
+<p>Terms you will encounter in meetings and documents, defined in plain language.</p>
+
+<dl class="glossary-grid">
+<div class="glossary-item"><dt>API</dt><dd>A way for one computer to ask another computer a question and get a structured answer, over the internet.</dd></div>
+<div class="glossary-item"><dt>SDK</dt><dd>A pre-built code library that makes it easy for developers to call an API. "Three lines of code" instead of twenty.</dd></div>
+<div class="glossary-item"><dt>CDN</dt><dd>A network of servers worldwide that cache data close to users for speed. Your Netflix streams from a local CDN node, not from California.</dd></div>
+<div class="glossary-item"><dt>HSM</dt><dd>A tamper-proof hardware device that stores cryptographic keys. The key is generated inside and never leaves. Banks and governments use these.</dd></div>
+<div class="glossary-item"><dt>Ed25519</dt><dd>A modern, fast, secure algorithm for creating digital signatures. The mathematical guarantee that a trust token was not forged.</dd></div>
+<div class="glossary-item"><dt>DID</dt><dd>Decentralized Identifier. A digital identity that is not controlled by any single company. Our DID tells agents where to find our public key.</dd></div>
+<div class="glossary-item"><dt>W3C</dt><dd>World Wide Web Consortium. The organization that defines web standards (HTML, CSS, Verifiable Credentials). The governing body of the web.</dd></div>
+<div class="glossary-item"><dt>Verifiable Credential</dt><dd>A W3C standard for digital documents that can be verified without calling the issuer. Our trust tokens follow this format.</dd></div>
+<div class="glossary-item"><dt>RFC</dt><dd>Request for Comments. The standard format for internet protocol specifications. HTTP, email, and TLS are all defined as RFCs.</dd></div>
+<div class="glossary-item"><dt>JSON</dt><dd>A simple, universal format for structured data. Every programming language can read it. Our trust tokens are JSON documents.</dd></div>
+<div class="glossary-item"><dt>KYC</dt><dd>Know Your Customer. The process of verifying the real-world identity of a person or business. Banks do this when you open an account.</dd></div>
+<div class="glossary-item"><dt>.well-known</dt><dd>A standard directory on any website where machine-readable metadata lives. Our trust token sits at /.well-known/ott.json.</dd></div>
+<div class="glossary-item"><dt>WHOIS</dt><dd>A public database that records who registered a domain name and when. We check it for domain age.</dd></div>
+<div class="glossary-item"><dt>TLS/SSL</dt><dd>The encryption that makes websites show a padlock icon. It protects data in transit between a browser and a server.</dd></div>
+<div class="glossary-item"><dt>DNS</dt><dd>Domain Name System. The internet's phone book that translates "google.com" into a server address. We check its security configuration.</dd></div>
+<div class="glossary-item"><dt>SPF/DMARC</dt><dd>Email security standards that prevent email spoofing. Their presence indicates a domain owner cares about security configuration.</dd></div>
+<div class="glossary-item"><dt>DNSSEC</dt><dd>DNS Security Extensions. Adds cryptographic verification to DNS lookups. Prevents attackers from redirecting a domain to a fake server.</dd></div>
+<div class="glossary-item"><dt>Horizontal Scaling</dt><dd>Growing by adding more machines rather than making one machine bigger. This is how Netflix and Google handle growth. It is what enterprise buyers expect.</dd></div>
+<div class="glossary-item"><dt>Cache</dt><dd>A fast, temporary copy of data stored in memory (RAM). 99% of our verification requests are answered from cache in under 10 milliseconds.</dd></div>
+<div class="glossary-item"><dt>SRI</dt><dd>Subresource Integrity. A browser feature that verifies a script file has not been tampered with by checking its hash before running it.</dd></div>
+</dl>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="container">
+<div class="mark">OpenTrustToken</div>
+<p>Internal Knowledge Base. Draft v0.1 -- 2026-04-10</p>
+</div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+
+/* Accordion */
+var btns = document.querySelectorAll('.accordion-btn');
+for(var i = 0; i < btns.length; i++){
+btns[i].addEventListener('click', function(){
+var item = this.parentElement;
+var panel = this.nextElementSibling;
+var isOpen = item.classList.contains('open');
+if(isOpen){
+item.classList.remove('open');
+panel.style.maxHeight = '0';
+this.setAttribute('aria-expanded','false');
+} else {
+item.classList.add('open');
+panel.style.maxHeight = panel.scrollHeight + 'px';
+this.setAttribute('aria-expanded','true');
+}
+});
+}
+
+/* Sticky nav active state */
+var tocLinks = document.querySelectorAll('.toc a');
+var sections = [];
+for(var j = 0; j < tocLinks.length; j++){
+var href = tocLinks[j].getAttribute('href');
+if(href && href.charAt(0) === '#'){
+var el = document.getElementById(href.substring(1));
+if(el) sections.push({link: tocLinks[j], el: el});
+}
+}
+
+function updateActive(){
+var scrollY = window.scrollY + 120;
+var active = null;
+for(var k = 0; k < sections.length; k++){
+if(sections[k].el.offsetTop <= scrollY){
+active = sections[k].link;
+}
+}
+for(var m = 0; m < tocLinks.length; m++){
+tocLinks[m].classList.remove('active');
+}
+if(active) active.classList.add('active');
+}
+
+var ticking = false;
+window.addEventListener('scroll', function(){
+if(!ticking){
+window.requestAnimationFrame(function(){
+updateActive();
+ticking = false;
+});
+ticking = true;
+}
+});
+updateActive();
+
+})();
+</script>
+
+</body>
+</html>

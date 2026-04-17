@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTrustToken - How It Works (scoring v1.3)</title>
+<link rel="icon" type="image/png" href="/ottlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy:#0f1f30;--navy-light:#162a40;
+--blue:#2878b8;--blue-light:#3a9ad9;
+--green:#27ae60;--green-light:#2ecc71;
+--amber:#d97706;
+--red:#dc2626;
+--white:#ffffff;--off-white:#f7f8fa;
+--text:#1f2937;--text-light:#4b5563;--text-dim:#9ca3af;
+--border:#e5e7eb;
+--font:'Inter',system-ui,sans-serif;
+--mono:'SF Mono','Cascadia Code',monospace;
+--radius:8px;--radius-lg:12px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);color:var(--text);background:var(--white);line-height:1.7}
+a{color:var(--blue);text-decoration:none}
+a:hover{color:#1d5f94}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+.skip-link{position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;background:var(--blue);color:#fff;font-weight:600;border-radius:0 0 8px 8px;z-index:1000}
+.skip-link:focus{top:0}
+h1,h2,h3,h4{line-height:1.3;letter-spacing:-0.02em}
+h1{font-size:clamp(1.75rem,4vw,2.5rem);font-weight:800}
+h2{font-size:clamp(1.3rem,3vw,1.75rem);font-weight:700;margin-bottom:0.75rem}
+h3{font-size:1.05rem;font-weight:600;margin-bottom:0.4rem}
+h4{font-size:0.9rem;font-weight:600;margin-bottom:0.25rem;color:var(--text-light)}
+.container{max-width:880px;margin:0 auto;padding:0 1.5rem}
+section{padding:3rem 0;border-bottom:1px solid var(--border)}
+section:last-of-type{border-bottom:none}
+.label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--blue);margin-bottom:0.4rem}
+
+/* Nav */
+.nav{padding:0.75rem 0;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:880px;margin:0 auto;padding:0 1.5rem}
+.nav-brand{display:flex;align-items:center;gap:0.5rem}
+.nav-brand img{height:28px}
+.nav-links{display:flex;gap:1rem;font-size:0.85rem}
+.nav-links a{color:var(--text-light);font-weight:500;min-height:44px;display:flex;align-items:center}
+
+/* Hero */
+.hero{padding:3.5rem 0 2.5rem;text-align:center}
+.hero h1{color:var(--navy);margin-bottom:0.75rem}
+.hero p{color:var(--text-light);max-width:600px;margin:0 auto;font-size:1rem}
+
+/* Cards */
+.card{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1rem}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1rem}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:1rem 0;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:0.85rem}
+thead{background:var(--off-white)}
+th{padding:0.6rem 1rem;text-align:left;font-weight:600;color:var(--navy);white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:0.6rem 1rem;border-bottom:1px solid var(--border);color:var(--text-light)}
+tr:last-child td{border-bottom:none}
+
+/* Score bars */
+.score-bar{display:flex;align-items:center;gap:0.6rem;margin:0.3rem 0;font-size:0.82rem}
+.score-bar .lbl{width:100px;color:var(--text-light);flex-shrink:0}
+.score-bar .track{flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden}
+.score-bar .fill{height:100%;border-radius:3px;background:var(--blue)}
+.score-bar .pts{width:30px;text-align:right;font-family:var(--mono);font-size:0.78rem;color:var(--text-dim)}
+
+/* Tier visual */
+.tier-row{display:flex;align-items:center;padding:0.75rem 1rem;border:1px solid var(--border);margin-bottom:-1px;gap:1rem;flex-wrap:wrap}
+.tier-row:first-child{border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.tier-row:last-child{border-radius:0 0 var(--radius-lg) var(--radius-lg);margin-bottom:0}
+.tier-name{font-weight:700;width:120px;flex-shrink:0}
+.tier-price{font-family:var(--mono);font-weight:500;width:80px;flex-shrink:0;color:var(--text-light)}
+.tier-desc{flex:1;font-size:0.85rem;color:var(--text-light)}
+.tier-ceiling{font-family:var(--mono);font-size:0.78rem;padding:0.15rem 0.5rem;border-radius:100px;background:var(--off-white);color:var(--text-dim);white-space:nowrap}
+
+/* Flow */
+.flow-vertical{display:flex;flex-direction:column;gap:0;margin:1.5rem 0}
+.flow-step{display:flex;gap:1rem;padding:1rem 0}
+.flow-num{width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0}
+.flow-body{flex:1}
+.flow-body h3{margin-bottom:0.2rem}
+.flow-body p{font-size:0.875rem;color:var(--text-light)}
+.flow-line{width:1px;height:20px;background:var(--border);margin-left:15px}
+
+/* Code */
+.code{background:var(--navy);border-radius:var(--radius);padding:1rem 1.25rem;font-family:var(--mono);font-size:0.8rem;color:#d1d5db;overflow-x:auto;margin:0.75rem 0;line-height:1.6}
+.code .c{color:#6b7280}
+
+/* Footer */
+footer{padding:2rem 0;text-align:center;color:var(--text-dim);font-size:0.82rem}
+footer img{height:36px;margin:0 auto 0.5rem;display:block}
+
+@media(max-width:768px){
+  .card-grid{grid-template-columns:1fr}
+  .tier-row{flex-direction:column;align-items:flex-start;gap:0.5rem}
+  .tier-name,.tier-price{width:auto}
+}
+@media(prefers-reduced-motion:reduce){*{transition-duration:0.01ms !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav class="nav">
+<div class="nav-inner">
+<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<div class="nav-links">
+<a href="#architecture">Architecture</a>
+<a href="#scoring">Scoring</a>
+<a href="#registration">Registration</a>
+<a href="#kyc">KYC</a>
+<a href="#roadmap">Roadmap</a>
+</div>
+</div>
+</nav>
+
+<main id="main">
+
+<header class="hero">
+<div class="container">
+<h1>OpenTrustToken: Structural Overview</h1>
+<p>The independent trust attestation layer for AI agent commerce. How it works, how scoring is built, how the fetch escalation ladder reaches sites that block our datacenter IPs, and where the compositional brand anchor, KYC infrastructure, and longitudinal trust graph fit into the architecture.</p>
+</div>
+</header>
+
+<!-- What It Is -->
+<section>
+<div class="container">
+<p class="label">The Problem</p>
+<h2>AI agents can pay. They have no way to know who to trust.</h2>
+<p>Stripe's Machine Payments Protocol, Coinbase x402, Visa's AP2 framework, and Skyfire KYAPay are building payment rails for AI agents. These handle "how agents pay." Nobody has standardized the pre-transaction question: "should this agent pay this specific site?"</p>
+<p style="margin-top:0.75rem">OpenTrustToken answers that question. One API call returns a cryptographically signed evidence bundle with a trust score, a brand tier classification, a crawlability flag, and a PROCEED / CAUTION / DENY recommendation. The evidence bundle is the product. Payment protocols can cite our verdicts without putting us on their critical path, because the Ed25519 signature lets anyone verify a token without calling our API.</p>
+
+<div class="card-grid" style="margin-top:1.5rem">
+<div class="card">
+<h3>For agents</h3>
+<p style="font-size:0.9rem;color:var(--text-light)">Call our API before any payment. Get signed evidence: domain age, SSL, DNS security, reputation, content quality, identity signals. Make an informed decision programmatically.</p>
+</div>
+<div class="card">
+<h3>For site owners</h3>
+<p style="font-size:0.9rem;color:var(--text-light)">Check your trust score and get a checklist of specific improvements. Add a privacy policy, enable HSTS, configure DMARC. Each fix raises your score. No code integration needed.</p>
+</div>
+<div class="card">
+<h3>The real asset</h3>
+<p style="font-size:0.9rem;color:var(--text-light)">The database of longitudinal trust profiles. Raw signal data stored separately from scores, enabling algorithm updates without re-crawling. Every check adds to the dataset.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Architecture -->
+<section id="architecture">
+<div class="container">
+<p class="label">Architecture</p>
+<h2>How a trust check works</h2>
+
+<div class="flow-vertical">
+<div class="flow-step">
+<div class="flow-num">1</div>
+<div class="flow-body">
+<h3>Agent calls the API</h3>
+<p><code style="font-family:var(--mono);background:var(--off-white);padding:0.1rem 0.4rem;border-radius:3px;font-size:0.85rem">GET /v1/check/merchant.com</code></p>
+</div>
+</div>
+<div class="flow-line"></div>
+<div class="flow-step">
+<div class="flow-num">2</div>
+<div class="flow-body">
+<h3>Six signal collectors run in parallel</h3>
+<p>Domain age (WHOIS with registrant change detection), SSL/TLS (direct probe, OV/EV cert org extraction), DNS security (SPF, DMARC, DNSSEC, CAA), content analysis (multilingual legal pages in 12+ languages, security headers, structured data, payment processors, social media links, response time, site category detection), reputation (logarithmic Tranco ranking, Google Safe Browsing, Spamhaus DBL, SURBL, URLhaus), identity (GDPR-aware WHOIS analysis, cert org, Tranco identity, ccTLD verification bonuses, institutional TLD bonuses, schema.org).</p>
+</div>
+</div>
+<div class="flow-line"></div>
+<div class="flow-step">
+<div class="flow-num">3</div>
+<div class="flow-body">
+<h3>Content fetch escalates through a four-tier ladder</h3>
+<p>Tier 1: direct httpx with realistic browser headers from the API box. Tier 2: real headless Chromium on a dedicated crawler droplet (playwright-stealth, pool of warm contexts). Tier 3: Playwright through Decodo rotating residential proxy (fresh residential IPs across Comcast, Verizon, T-Mobile, Charter). Tier 4 (rolling out): real Chrome on a physical Mac on residential ISP via Tailscale. Each tier has independent circuit breakers so a failure in one does not poison the others. Counters exposed at <code style="font-family:var(--mono);font-size:0.85rem">/stats.fetch</code> per tier.</p>
+</div>
+</div>
+<div class="flow-line"></div>
+<div class="flow-step">
+<div class="flow-num">4</div>
+<div class="flow-body">
+<h3>Scoring engine computes the result with two anchors</h3>
+<p>Weighted formula applied to all signals. If content is unreachable after the full tier ladder, content's 17% is dropped and the remaining five signals renormalize. If the domain meets the well-known brand anchor (top-50K Tranco + 5+ years + clean reputation + valid SSL), an identity floor of 50 and a trust_score floor of 75 are applied. Flags checked (malware/phishing override to DENY regardless of score). Recommendation generated. Actionable checklist built from failing items.</p>
+</div>
+</div>
+<div class="flow-line"></div>
+<div class="flow-step">
+<div class="flow-num">5</div>
+<div class="flow-body">
+<h3>Result is signed and returned</h3>
+<p>Ed25519 signature applied to the canonical evidence bundle. Response includes raw signals, computed score, <code style="font-family:var(--mono);font-size:0.85rem">brandTier</code> (well_known or scored), <code style="font-family:var(--mono);font-size:0.85rem">crawlability</code> (ok or blocked), site category (consumer / infrastructure / api_service), jurisdiction context (country, legal framework, cross-border risk, dispute resolution), recommendation, reasoning text, actionable checklist, flags array, and cryptographic proof. Cached for 7 days.</p>
+</div>
+</div>
+</div>
+
+<h3 style="margin-top:2rem">Data storage architecture</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:1rem">Raw signal facts are stored separately from scored results. When the scoring algorithm changes, every domain can be re-scored from stored data without re-crawling. This is the key architectural decision that makes the dataset useful long-term.</p>
+
+<div class="code">
+<span class="c">-- Three-table architecture</span><br>
+domains        <span class="c">-- domain, first_checked, last_checked, registered, check_count</span><br>
+raw_signals    <span class="c">-- domain, checked_at, signal_data (JSON blob of all raw facts)</span><br>
+scored_results <span class="c">-- domain, score, recommendation, model_version, full_response</span>
+</div>
+</div>
+</section>
+
+<!-- Scoring -->
+<section id="scoring">
+<div class="container">
+<p class="label">Scoring Model</p>
+<h2>How trust scores are computed</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">The score is a weighted average of six signal categories, with two anchors layered on top: <strong>content re-weighting</strong> when we cannot reach the homepage (content's 17% is dropped and the remaining five signals renormalize to sum to 100%), and the <strong>well-known brand anchor</strong> for unambiguously established sites. The model is versioned (current: <code style="font-family:var(--mono);font-size:0.85rem">ott-v1.3-weights</code>) and can be updated without re-crawling because raw signals are stored separately from scored results.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Signal</th><th>Weight</th><th>Sources</th><th>What it answers</th></tr></thead>
+<tbody>
+<tr><td><strong>Reputation</strong></td><td>30%</td><td>Tranco ranking (log curve), Google Safe Browsing, Spamhaus, SURBL, URLhaus</td><td>Is this site established and clean?</td></tr>
+<tr><td><strong>Identity</strong></td><td>25%</td><td>GDPR-aware WHOIS analysis, OV/EV cert org, Tranco identity (top 5K), institutional TLD (.gov/.edu), ccTLD verification bonuses, schema.org</td><td>Do we know who runs this?</td></tr>
+<tr><td><strong>Content</strong></td><td>17%</td><td>Privacy/terms/contact in 12+ languages, security.txt, robots.txt, security headers, payment processors, social media, structured data, response time. Category-aware: infrastructure sites scored on API docs and security posture instead of legal pages</td><td>Does this site operate professionally?</td></tr>
+<tr><td><strong>Domain Age</strong></td><td>10%</td><td>WHOIS registration date, logarithmic age curve</td><td>How long has this existed?</td></tr>
+<tr><td><strong>SSL/TLS</strong></td><td>10%</td><td>Certificate validity, TLS version, HSTS, issuer</td><td>Is the connection secure?</td></tr>
+<tr><td><strong>DNS</strong></td><td>8%</td><td>SPF, DMARC, DNSSEC, CAA records</td><td>Is the domain properly secured?</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="margin-top:1.5rem">Tranco logarithmic curve and identity buckets (v1.3)</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">The Tranco list ranks the top 1 million domains by traffic, aggregated from Cloudflare Radar, Cisco Umbrella, Majestic, and Quantcast. Instead of flat brackets, we use a logarithmic curve for reputation so rank #1 is meaningfully different from rank #1,000. Formula: <code style="font-family:var(--mono);font-size:0.85rem">score = 100 - 3 * log10(rank)</code>. Identity buckets are broader in v1.3 so sites like petco.com (rank 12,647) and crateandbarrel.com (rank 12,931) receive the identity credit their membership warrants.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Rank</th><th>Reputation Score</th><th>Identity Bonus</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>100</td><td>+25</td><td>google.com</td></tr>
+<tr><td>100</td><td>94</td><td>+25</td><td>apple.com, walmart.com</td></tr>
+<tr><td>1,000</td><td>91</td><td>+20</td><td>kohls.com, macys.com</td></tr>
+<tr><td>5,000</td><td>89</td><td>+15</td><td>chewy.com, nordstrom.com</td></tr>
+<tr><td>10,000</td><td>88</td><td>+12</td><td>petsmart.com</td></tr>
+<tr><td>50,000</td><td>86</td><td>+8</td><td>petco.com, crateandbarrel.com</td></tr>
+<tr><td>100,000</td><td>85</td><td>+5</td><td>small but real</td></tr>
+<tr><td>500,000</td><td>83</td><td>+3</td><td>edge of list</td></tr>
+<tr><td>Not listed</td><td>70-80</td><td>none</td><td>depends on Safe Browsing</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="margin-top:1.5rem">Well-known brand anchor (new in v1.3)</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">When a domain meets all four conditions simultaneously, we apply a compositional floor to scoring. The rationale is that long-term Tranco top-50K membership is unfakeable (the list comes from billions of real-user requests), and when combined with 5+ years of domain age, a clean reputation file, and a valid SSL certificate, the probability of the site being a bad actor is effectively zero. This mirrors how credit bureaus weight account longevity over transient activity.</p>
+
+<div class="card" style="background:#f0fdf4;border-color:#86efac;margin-top:1rem">
+<h4 style="color:#065f46">Anchor conditions (all four required)</h4>
+<ul style="font-size:0.9rem;color:var(--text-light);margin:0.5rem 0 0 1.25rem">
+<li>Tranco rank within the top 50,000</li>
+<li>Domain registered for at least 5 years (1,825 days)</li>
+<li>SSL/TLS certificate valid and chain verifies</li>
+<li>Reputation clean: no malware, phishing, or spam blocklist hits</li>
+</ul>
+<h4 style="color:#065f46;margin-top:1rem">What the anchor does</h4>
+<ul style="font-size:0.9rem;color:var(--text-light);margin:0.5rem 0 0 1.25rem">
+<li>Raises the identity signal floor to 50 before the weighted sum</li>
+<li>Floors the final trust_score at 75 (PROCEED threshold)</li>
+<li>Sets <code style="font-family:var(--mono);font-size:0.85rem">brandTier: "well_known"</code> in the API response</li>
+<li>Adds the <code style="font-family:var(--mono);font-size:0.85rem">WELL_KNOWN_BRAND</code> flag so consumers can see the anchor was applied</li>
+</ul>
+<h4 style="color:#065f46;margin-top:1rem">What revokes the anchor (any one of these)</h4>
+<ul style="font-size:0.9rem;color:var(--text-light);margin:0.5rem 0 0 1.25rem">
+<li><code style="font-family:var(--mono);font-size:0.85rem">MALWARE_DETECTED</code> (Google Safe Browsing, URLhaus)</li>
+<li><code style="font-family:var(--mono);font-size:0.85rem">PHISHING_DETECTED</code> (Safe Browsing, Spamhaus DBL, SURBL)</li>
+<li><code style="font-family:var(--mono);font-size:0.85rem">SPAM_LISTED</code> (Spamhaus, SURBL)</li>
+<li><code style="font-family:var(--mono);font-size:0.85rem">RECENTLY_COMPROMISED</code> (monitoring alerts, historical baseline drift)</li>
+</ul>
+</div>
+
+<p style="color:var(--text-light);font-size:0.9rem;margin-top:0.75rem">The anchor addresses a credibility problem the automated layer cannot solve on its own. When content fetch is blocked by a merchant's bot protection (Cloudflare Bot Management, Akamai, PerimeterX), identity signals that transitively depend on content (contact on site, schema.org markup, presence of an <code style="font-family:var(--mono);font-size:0.85rem">ott.json</code> file) are all unavailable. Without the anchor, a crateandbarrel or petco would score CAUTION despite being unambiguously established brands. The anchor encodes the missing evidence explicitly rather than hand-curating a whitelist of "known good" domains.</p>
+
+<h3 style="margin-top:1.5rem">Content re-weighting when the homepage is unreachable</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">Some major retailers block automated crawlers at the network level. When our fetch ladder exhausts all tiers and cannot retrieve the homepage, we do NOT score content as 0 (that would conflate "we couldn't look" with "the site has no content"). Instead, we drop content's 17% weight from the sum and renormalize the remaining five signals to 100%. The response carries <code style="font-family:var(--mono);font-size:0.85rem">crawlability: "blocked"</code> and the <code style="font-family:var(--mono);font-size:0.85rem">CONTENT_UNSCORABLE</code> flag so consumers know why the score was computed from fewer signals.</p>
+
+<h3 style="margin-top:1.5rem">Recommendations</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Score</th><th>Recommendation</th><th>Agent behavior</th></tr></thead>
+<tbody>
+<tr><td style="color:var(--green);font-weight:700">75-100</td><td>PROCEED</td><td>Transaction authorized</td></tr>
+<tr><td style="color:var(--amber);font-weight:700">40-74</td><td>CAUTION</td><td>Apply limits or ask user for confirmation</td></tr>
+<tr><td style="color:var(--red);font-weight:700">0-39</td><td>DENY</td><td>Refuse the transaction</td></tr>
+</tbody>
+</table>
+</div>
+<p style="color:var(--text-light);font-size:0.85rem;margin-top:0.5rem">Critical flags (MALWARE_DETECTED, PHISHING_DETECTED) override to DENY regardless of score.</p>
+
+<h3 style="margin-top:1.5rem">Example: how real sites score under v1.3</h3>
+
+<div class="card" style="margin-top:0.5rem">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+<span style="font-family:var(--mono);font-weight:600">stripe.com <span style="font-family:var(--font);font-size:0.7rem;font-weight:600;background:#dbeafe;color:#1e40af;padding:0.15rem 0.5rem;border-radius:100px;margin-left:0.25rem">brandTier: well_known</span></span>
+<span style="font-weight:800;font-size:1.5rem;color:var(--green)">83 <span style="font-size:0.75rem;font-weight:600;background:#d1fae5;color:#065f46;padding:0.15rem 0.5rem;border-radius:100px;margin-left:0.25rem">PROCEED</span></span>
+</div>
+<div class="score-bar"><span class="lbl">Reputation</span><div class="track"><div class="fill" style="width:93%"></div></div><span class="pts">93</span></div>
+<div class="score-bar"><span class="lbl">Identity</span><div class="track"><div class="fill" style="width:55%"></div></div><span class="pts">55</span></div>
+<div class="score-bar"><span class="lbl">Content</span><div class="track"><div class="fill" style="width:95%"></div></div><span class="pts">95</span></div>
+<div class="score-bar"><span class="lbl">Domain Age</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="lbl">SSL/TLS</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="lbl">DNS</span><div class="track"><div class="fill" style="width:60%"></div></div><span class="pts">60</span></div>
+<p style="font-size:0.82rem;color:var(--text-dim);margin-top:0.75rem">Tranco top-1K, OV certificate, TLS 1.3 + HSTS, full content signals. Identity capped at 55 (automated maximum); KYC tier would unlock higher. Reaches PROCEED through natural weighted sum; well-known anchor confirms but does not need to be applied.</p>
+</div>
+
+<div class="card" style="margin-top:0.75rem">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+<span style="font-family:var(--mono);font-weight:600">crateandbarrel.com <span style="font-family:var(--font);font-size:0.7rem;font-weight:600;background:#dbeafe;color:#1e40af;padding:0.15rem 0.5rem;border-radius:100px;margin-left:0.25rem">brandTier: well_known</span> <span style="font-family:var(--font);font-size:0.7rem;font-weight:600;background:#fef3c7;color:#92400e;padding:0.15rem 0.5rem;border-radius:100px">crawlability: blocked</span></span>
+<span style="font-weight:800;font-size:1.5rem;color:var(--green)">76 <span style="font-size:0.75rem;font-weight:600;background:#d1fae5;color:#065f46;padding:0.15rem 0.5rem;border-radius:100px;margin-left:0.25rem">PROCEED</span></span>
+</div>
+<div class="score-bar"><span class="lbl">Reputation</span><div class="track"><div class="fill" style="width:88%"></div></div><span class="pts">88</span></div>
+<div class="score-bar"><span class="lbl">Identity</span><div class="track"><div class="fill" style="width:50%"></div></div><span class="pts">50</span></div>
+<div class="score-bar"><span class="lbl">Content</span><div class="track"><div class="fill" style="width:0%;background:#9ca3af"></div></div><span class="pts" style="color:var(--text-dim)">n/a</span></div>
+<div class="score-bar"><span class="lbl">Domain Age</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="pts">100</span></div>
+<div class="score-bar"><span class="lbl">SSL/TLS</span><div class="track"><div class="fill" style="width:90%"></div></div><span class="pts">90</span></div>
+<div class="score-bar"><span class="lbl">DNS</span><div class="track"><div class="fill" style="width:60%"></div></div><span class="pts">60</span></div>
+<p style="font-size:0.82rem;color:var(--text-dim);margin-top:0.75rem">Tranco rank 12,931, domain registered 1995, clean reputation, valid SSL. Cloudflare Enterprise Bot Management blocks our crawler at the fingerprint layer even through residential proxy rotation, so content is unreachable. Content weight drops to 0% and the remaining five signals renormalize. Identity floor (50) and score floor (75) applied because all four anchor conditions hold. Result: PROCEED 76 with full transparency about why content is marked n/a.</p>
+</div>
+
+<div class="card" style="margin-top:0.75rem">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+<span style="font-family:var(--mono);font-weight:600">pets.com <span style="font-family:var(--font);font-size:0.7rem;font-weight:600;background:#f3f4f6;color:var(--text-dim);padding:0.15rem 0.5rem;border-radius:100px;margin-left:0.25rem">brandTier: scored</span> <span style="font-family:var(--font);font-size:0.7rem;font-weight:600;background:#fef3c7;color:#92400e;padding:0.15rem 0.5rem;border-radius:100px">crawlability: blocked</span></span>
+<span style="font-weight:800;font-size:1.5rem;color:var(--amber)">48 <span style="font-size:0.75rem;font-weight:600;background:#fef3c7;color:#92400e;padding:0.15rem 0.5rem;border-radius:100px;margin-left:0.25rem">CAUTION</span></span>
+</div>
+<p style="font-size:0.82rem;color:var(--text-light);margin-top:0.5rem">pets.com is a famous dot-com-era brand, now owned by petsmart's parent company. But the pets.com domain itself is a shell: apex refuses TCP, www times out, and its Tranco rank has decayed outside the top 50K. Our system correctly identifies that the domain, as a technical entity, is unreachable and unanchored. We score petsmart.com at PROCEED 79 and pets.com at CAUTION 48 in the same API, because scoring a brand and scoring a domain are different questions. This is the difference between heuristic brand recognition and honest domain verification.</p>
+</div>
+
+<h3 style="margin-top:1.5rem">The four trust layers</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">Scores stack through layers. Each layer adds trust signals that the previous layer cannot provide.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Layer</th><th>What provides it</th><th>Typical score range</th></tr></thead>
+<tbody>
+<tr><td><strong>1. Automated signals</strong></td><td>Public data (SSL, DNS, content, domain age)</td><td>40-65 for average sites</td></tr>
+<tr><td><strong>2. Well-known brand anchor</strong></td><td>Tranco top-50K + 5+ years age + clean reputation + valid SSL. Also: OV/EV cert, institutional TLD (.gov/.edu), full content signals</td><td>75-85 for top-tier sites, automatic PROCEED when anchored</td></tr>
+<tr><td><strong>3. Registration (free)</strong></td><td>Structured data collection: biz name, EIN/VAT, address, phone, social. Each verified field earns points.</td><td>+6 to +30 points</td></tr>
+<tr><td><strong>4. Enhanced ($29/mo)</strong></td><td>Business registry, address, phone verification</td><td>Ceiling: 80</td></tr>
+<tr><td><strong>5. KYC-Verified ($99/mo)</strong></td><td>Government ID, business docs, bank, video call</td><td>Ceiling: 95</td></tr>
+<tr><td><strong>6. Enterprise ($499/mo)</strong></td><td>Audit, continuous monitoring, transaction insurance</td><td>Ceiling: 100</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- Registration -->
+<section id="registration">
+<div class="container">
+<p class="label">Registration Model</p>
+<h2>Free registration as a data event</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">Registration is not just domain ownership proof. It is a structured data collection that feeds cross-referencing and verification. The more data a site provides, the more we can verify, the higher the score. Each verified field earns points independently.</p>
+
+<h3 style="margin-top:1.5rem">Registration fields and scoring</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Field</th><th>Required</th><th>How it scores</th><th>Points</th></tr></thead>
+<tbody>
+<tr><td>Domain ownership (DNS/HTTP)</td><td>Yes</td><td>Proves control of the domain</td><td>+3</td></tr>
+<tr><td>Business legal name</td><td>Yes</td><td>Cross-referenced against WHOIS org, SSL cert org, state registry</td><td>+5 if match</td></tr>
+<tr><td>Contact email</td><td>Yes</td><td>Verified that email domain matches the site domain</td><td>+3 if match</td></tr>
+<tr><td>Country / State</td><td>Yes</td><td>Used to look up business in correct jurisdiction</td><td>(enables registry check)</td></tr>
+<tr><td>Business type</td><td>Yes</td><td>Contextualizes scoring (nonprofits, government scored differently)</td><td>(context)</td></tr>
+<tr><td>Website category</td><td>Yes</td><td>Adjusts which checklist items are relevant</td><td>(context)</td></tr>
+<tr><td>EIN / Tax ID</td><td>No</td><td>Verified against IRS or national tax registry</td><td>+5 if verified</td></tr>
+<tr><td>Phone number</td><td>No</td><td>Checked against what appears on the site</td><td>+3 if match</td></tr>
+<tr><td>Physical address</td><td>No</td><td>Verified as real commercial location via USPS/Google Places</td><td>+3 if verified</td></tr>
+<tr><td>Social media profiles</td><td>No</td><td>Verified bidirectional link (profile links to site, site links to profile)</td><td>+3 if verified</td></tr>
+<tr><td>Business registry match</td><td>Auto</td><td>Business name found in state/national corporate registry</td><td>+5 if found</td></tr>
+</tbody>
+</table>
+</div>
+<p style="color:var(--text-light);font-size:0.85rem;margin-top:0.5rem"><strong>Maximum registration boost: +30 points</strong> to identity signal. A registration with just domain proof and email gives +6. A complete registration with all fields verified gives +30. This creates a natural gradient: more disclosure = more trust.</p>
+
+<h3 style="margin-top:1.5rem">Privacy framework</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">Registration data is split into public and private categories. The API exposes verification <strong>status</strong>, never the underlying <strong>data</strong>.</p>
+
+<div class="card-grid">
+<div class="card">
+<h4>Public (shown in API responses)</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Business name, country, state, business type, website category, year established. These are already public record in business registries. Verification statuses are public: "einVerified: true" tells agents the EIN was confirmed without revealing the number.</p>
+</div>
+<div class="card">
+<h4>Private (never exposed)</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Contact name, email, phone, physical address, EIN/tax ID. Used only for internal verification, dispute resolution (with legal authorization), and KYC upgrade pre-population. Encrypted at rest. Covered by privacy policy and data processing agreement.</p>
+</div>
+</div>
+
+<p style="color:var(--text-light);font-size:0.9rem;margin-top:1rem"><strong>The strategic value:</strong> Registration data is proprietary. Public signals (WHOIS, SSL, DNS) are available to anyone. But "this site's owner told us their business name is X, their EIN is Y, and we verified both against state records" is data only we hold. When a registered site upgrades to the $29 Enhanced tier, we already have half the KYC data collected. Registration is the top of the KYC funnel.</p>
+</div>
+</section>
+
+<!-- KYC -->
+<section id="kyc">
+<div class="container">
+<p class="label">KYC Infrastructure</p>
+<h2>Paid verification tiers</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">Beyond free registration, paid tiers add human verification and continuous monitoring. These tiers are the primary monetization mechanism and are funded by the natural demand from sites that need higher scores to attract agent transactions.</p>
+
+<div class="tier-row" style="background:#f0fdf4">
+<span class="tier-name" style="color:var(--green)">Enterprise</span>
+<span class="tier-price">$499/mo</span>
+<span class="tier-desc">Annual audit, continuous monitoring, transaction insurance (up to $50K/incident), dedicated compliance officer</span>
+<span class="tier-ceiling">Ceiling: 100</span>
+</div>
+<div class="tier-row" style="background:#fef3c7">
+<span class="tier-name" style="color:var(--amber)">KYC-Verified</span>
+<span class="tier-price">$99/mo</span>
+<span class="tier-desc">Government ID, business docs, bank verification, video call, beneficial ownership</span>
+<span class="tier-ceiling">Ceiling: 95</span>
+</div>
+<div class="tier-row" style="background:#eff6ff">
+<span class="tier-name" style="color:var(--blue)">Enhanced</span>
+<span class="tier-price">$29/mo</span>
+<span class="tier-desc">Business registry cross-reference, address/phone verification, social media presence</span>
+<span class="tier-ceiling">Ceiling: 80</span>
+</div>
+<div class="tier-row" style="background:#f0f9ff">
+<span class="tier-name" style="color:#0369a1">Registered</span>
+<span class="tier-price">Free</span>
+<span class="tier-desc">Site owner proves domain ownership (DNS or HTTP verification). Score boost for active opt-in to the trust framework.</span>
+<span class="tier-ceiling">up to +30 points</span>
+</div>
+<div class="tier-row">
+<span class="tier-name">Automated</span>
+<span class="tier-price">Free</span>
+<span class="tier-desc">Machine-only checks from public data. No site owner involvement needed. Default for all domains.</span>
+<span class="tier-ceiling">Ceiling: ~88</span>
+</div>
+
+<h3 style="margin-top:1.5rem">Why sites will pay</h3>
+<p style="color:var(--text-light);font-size:0.9rem">A new merchant registers a domain and builds a site. Automated checks give them a score of 40 (CAUTION). AI agents will ask users for confirmation before paying, or apply transaction limits. Their competitors who verify identity score 80+ (PROCEED) and get frictionless agent transactions. The upgrade path is clear and the motivation is economic.</p>
+
+<h3 style="margin-top:1.5rem">KYC operations stack</h3>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">KYC is operationally intensive. The infrastructure uses established verification providers rather than building from scratch.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Function</th><th>Provider Options</th><th>Cost per verification</th></tr></thead>
+<tbody>
+<tr><td>ID verification</td><td>Jumio, Onfido, Persona</td><td>$2-5</td></tr>
+<tr><td>Business registry</td><td>OpenCorporates, Dun &amp; Bradstreet</td><td>$0.10-1.00</td></tr>
+<tr><td>Bank verification</td><td>Plaid, Stripe Identity</td><td>$1.50-3.00</td></tr>
+<tr><td>Phone verification</td><td>Twilio Verify</td><td>$0.05</td></tr>
+<tr><td>Address verification</td><td>SmartyStreets, Google Address</td><td>$0.01-0.05</td></tr>
+<tr><td>Video call</td><td>Zoom API, Daily.co</td><td>$0.03/min</td></tr>
+</tbody>
+</table>
+</div>
+<p style="color:var(--text-light);font-size:0.85rem;margin-top:0.5rem">Total platform cost per full KYC: under $40. At $99/mo subscription, payback in first month.</p>
+</div>
+</section>
+
+<!-- Global & Category -->
+<section>
+<div class="container">
+<p class="label">Global Coverage</p>
+<h2>International scoring and jurisdiction</h2>
+
+<div class="card-grid">
+<div class="card">
+<h4>One global score, contextual risk</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Every domain gets a single trust score regardless of region. The API also returns jurisdiction context: country, legal framework (US/EU-EEA/APAC/other), cross-border risk level, and dispute resolution availability. Agents apply their own regional policies on top of the score.</p>
+</div>
+<div class="card">
+<h4>GDPR-aware WHOIS</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">European domains are legally required to redact WHOIS data under GDPR. Our scoring treats GDPR redaction as neutral, not a penalty. EU businesses are not disadvantaged for complying with their own privacy laws.</p>
+</div>
+<div class="card">
+<h4>ccTLD verification bonuses</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Country-code TLDs like .jp, .cn, .au, .br, .de, .uk require local entity verification by their registries. These domains receive an identity bonus because the registry already performed some verification.</p>
+</div>
+<div class="card">
+<h4>Multilingual content detection</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Privacy policies, terms of service, and contact pages are detected in 12+ languages including English, German, French, Spanish, Portuguese, Italian, Dutch, Swedish, Polish, Czech, Hungarian, and Turkish. International common paths (/datenschutz, /conditions-generales, /kontakt) are probed.</p>
+</div>
+<div class="card">
+<h4>Category-aware scoring</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Infrastructure and API domains are auto-detected and scored differently from consumer sites. Security headers, API documentation, and status pages matter more than privacy policies for infrastructure. This prevents CDN and cloud service domains from being unfairly penalized.</p>
+</div>
+<div class="card">
+<h4>Infrastructure micropayments</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Agent micropayments to infrastructure (via x402, Stripe MPP) are a major emerging market. CDN endpoints, API services, and compute providers need trust verification too. Our category-aware scoring ensures these domains are assessed on signals relevant to their function.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Anti-gaming -->
+<section>
+<div class="container">
+<p class="label">Security</p>
+<h2>Anti-gaming and ongoing monitoring</h2>
+
+<div class="card-grid">
+<div class="card">
+<h4>Unfakeable compositional signals</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Four signals resist gaming individually: domain age (requires real time to pass), Tranco ranking (requires real global traffic measured across four independent networks), OV/EV certificates (require CA verification against business records), and blocklist cleanliness (signals monitored continuously by Google Safe Browsing, Spamhaus, SURBL, URLhaus). The well-known brand anchor treats the composite of all four as stronger than any signal in isolation: a domain that satisfies all four simultaneously has effectively zero probability of being a bad actor, which is how it unlocks automatic PROCEED for established sites we cannot crawl directly.</p>
+</div>
+<div class="card">
+<h4>Historical WHOIS monitoring (planned)</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Scammers buy aged domains from auctions to inherit credibility. True detection requires historical WHOIS snapshots so we can diff the registrant name and email across time. Integration with a historical WHOIS provider (DomainTools, SecurityTrails, WhoisXML) is planned. The simpler heuristic of "recent WHOIS update = ownership change" produces too many false positives on routine admin churn (annual renewals, DNSSEC changes, nameserver tweaks) and is currently disabled.</p>
+</div>
+<div class="card">
+<h4>KYC continuous monitoring</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">KYC verification is not a one-time stamp. Paid tiers receive ongoing monitoring: content change detection, SSL cert changes, WHOIS registrant changes, and blocklist checks. Any anomaly triggers a flag or score freeze pending investigation.</p>
+</div>
+</div>
+
+<div class="table-wrap" style="margin-top:1rem">
+<table>
+<thead><tr><th>Tier</th><th>Re-check frequency</th><th>Annual re-verification</th></tr></thead>
+<tbody>
+<tr><td>Automated</td><td>Weekly signal refresh</td><td>None</td></tr>
+<tr><td>Registered</td><td>Weekly</td><td>None</td></tr>
+<tr><td>Enhanced</td><td>Every 72 hours</td><td>Business registry re-check</td></tr>
+<tr><td>KYC-Verified</td><td>Every 48 hours</td><td>Document re-upload + brief review</td></tr>
+<tr><td>Enterprise</td><td>Daily</td><td>Full re-audit</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- Cryptography -->
+<section>
+<div class="container">
+<p class="label">Trust Infrastructure</p>
+<h2>Cryptographic signing and verification</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">Every trust token is signed with Ed25519 so results cannot be forged. This is the same signature scheme used by SSH, Signal, and major blockchain protocols.</p>
+
+<div class="card-grid">
+<div class="card">
+<h4>Signing process</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Evidence bundle is canonicalized (JSON Canonical Scheme, RFC 8785), SHA-256 hashed, then signed with our Ed25519 private key. The key lives in a secure, restricted-access environment. In production, this moves to an HSM (Hardware Security Module).</p>
+</div>
+<div class="card">
+<h4>Verification</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Anyone can verify a token by fetching our public key from the DID document at <code style="font-family:var(--mono);font-size:0.82rem">/.well-known/did.json</code> and checking the Ed25519 signature. No API call to us needed for verification. W3C Verifiable Credentials compatible.</p>
+</div>
+<div class="card">
+<h4>Why this matters</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">When disputes arise ("this site scored 80 but defrauded me"), the signed token is timestamped, cryptographic proof of what the assessment was at the time of the transaction. This is critical for insurance underwriting and regulatory compliance.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Data -->
+<section>
+<div class="container">
+<p class="label">Data Strategy</p>
+<h2>The database is the asset</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">The API and scoring are the interface. The accumulated dataset of trust profiles is what compounds in value and becomes impossible to replicate.</p>
+
+<div class="card-grid">
+<div class="card">
+<h4>What we store per domain per check</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Registration date, SSL cert chain, DNS configuration, content signals, reputation flags, payment processors detected, technology stack, Tranco ranking, social media presence, structured data, response time, redirect chains, security header configuration, cookie consent status.</p>
+</div>
+<div class="card">
+<h4>Longitudinal value</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">A single check is a snapshot. Repeated checks over time create a trust trajectory. A site whose score dropped 20 points in a month is a different risk than one stable for a year. This historical data is what makes our scores more valuable than any point-in-time check an agent could run itself.</p>
+</div>
+<div class="card">
+<h4>Future data customers</h4>
+<p style="font-size:0.85rem;color:var(--text-light)">Insurance underwriters pricing agent transaction coverage. Payment rails assessing merchant risk. Agent frameworks making routing decisions. Security researchers tracking threat patterns. Compliance teams at financial institutions.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Competitive -->
+<section>
+<div class="container">
+<p class="label">Market Position</p>
+<h2>Where OTT sits in the agent commerce stack</h2>
+
+<div class="table-wrap" style="margin-top:1rem">
+<table>
+<thead><tr><th>Player</th><th>What they do</th><th>Relationship to OTT</th></tr></thead>
+<tbody>
+<tr><td><strong>Stripe MPP</strong></td><td>Agent payment protocol (stablecoin + fiat)</td><td>Complementary: OTT is the pre-transaction check</td></tr>
+<tr><td><strong>Coinbase x402</strong></td><td>HTTP-native crypto payments</td><td>Complementary: OTT verifies before x402 pays</td></tr>
+<tr><td><strong>Skyfire KYAPay</strong></td><td>Agent identity + payments (proprietary)</td><td>Competitor on identity; OTT is open and rail-agnostic</td></tr>
+<tr><td><strong>Visa Trusted Agent</strong></td><td>Agent credential framework</td><td>Different focus: they verify agents, we verify merchants</td></tr>
+<tr><td><strong>Google Safe Browsing</strong></td><td>Binary safe/unsafe flag</td><td>Data source: we consume their API as one of many signals</td></tr>
+</tbody>
+</table>
+</div>
+
+<p style="color:var(--text-light);font-size:0.9rem;margin-top:1rem"><strong>The neutrality argument:</strong> Payment rails cannot credibly be the trust authority for the merchants they process payments for. OTT is independent: we don't process payments, we don't take a transaction fee, we verify trust. Same structural reason SSL certificates come from independent CAs, not from browser vendors.</p>
+</div>
+</section>
+
+<!-- Roadmap -->
+<section id="roadmap">
+<div class="container">
+<p class="label">Roadmap</p>
+<h2>What's built, what's next</h2>
+
+<div class="table-wrap" style="margin-top:1rem">
+<table>
+<thead><tr><th>Phase</th><th>Status</th><th>What</th></tr></thead>
+<tbody>
+<tr><td><strong>Protocol spec</strong></td><td style="color:var(--green)">Complete</td><td>RFC-style spec v0.2, evidence-first token format, W3C VC compatible</td></tr>
+<tr><td><strong>API server</strong></td><td style="color:var(--green)">Live</td><td>FastAPI, 6 signal categories, Ed25519 signing, SQLite, cached results</td></tr>
+<tr><td><strong>Scoring v1.3 with brand anchor</strong></td><td style="color:var(--green)">Live</td><td>Well-known brand anchor, content re-weighting, expanded Tranco identity buckets, GDPR-aware, category-aware, compositional gating</td></tr>
+<tr><td><strong>Reputation pipeline</strong></td><td style="color:var(--green)">Live</td><td>Tranco + Safe Browsing + Spamhaus + SURBL + URLhaus</td></tr>
+<tr><td><strong>International scoring</strong></td><td style="color:var(--green)">Live</td><td>12+ languages, GDPR WHOIS awareness, ccTLD bonuses, jurisdiction detection</td></tr>
+<tr><td><strong>Category detection</strong></td><td style="color:var(--green)">Live</td><td>Auto-detect infrastructure vs consumer, category-adjusted scoring</td></tr>
+<tr><td><strong>Landing page + free checker</strong></td><td style="color:var(--green)">Live</td><td>Public domain checker at opentrusttoken.com</td></tr>
+<tr><td><strong>Domain registration flow</strong></td><td style="color:var(--green)">Live</td><td>Structured data collection, per-field verification scoring (max +30), DNS/HTTP domain proof, public/private separation, cross-referencing against WHOIS and SSL cert org</td></tr>
+<tr><td><strong>Site owner dashboard</strong></td><td style="color:var(--green)">Live</td><td>Score hero, signal breakdown bars, jurisdiction profile, grouped checklist, registration status with per-field verification, score history chart with PROCEED threshold line</td></tr>
+<tr><td><strong>Python + TypeScript SDKs</strong></td><td style="color:var(--green)">Built</td><td>sync/async clients, LangChain and CrewAI tool wrappers. Not yet published to PyPI / npm.</td></tr>
+<tr><td><strong>Fetch tier 1 (direct httpx)</strong></td><td style="color:var(--green)">Live</td><td>Realistic browser headers, Brotli decompression, Chrome and Safari user-agent rotation, www-fallback for sites with dead apex</td></tr>
+<tr><td><strong>Fetch tier 2 (headless Chromium)</strong></td><td style="color:var(--green)">Live</td><td>Dedicated crawler droplet (ott-crawler-1), FastAPI fetch service on private VPC, playwright-stealth, pool of warm contexts, shared-secret auth, circuit breaker</td></tr>
+<tr><td><strong>Fetch tier 3 (residential proxy)</strong></td><td style="color:var(--green)">Live</td><td>Decodo rotating residential IPs (gate.decodo.com:7000), Playwright through proxy, ephemeral contexts per request, separate circuit breaker, counters at /stats.fetch</td></tr>
+<tr><td><strong>Fetch tier 4 (real Chrome, residential)</strong></td><td style="color:var(--amber)">In progress</td><td>Physical Mac at a residential ISP via Tailscale. Intended to crack Cloudflare Enterprise Bot Management tier where datacenter + stealth alone cannot reach.</td></tr>
+<tr><td><strong>Registry seeding</strong></td><td style="color:var(--amber)">Growing</td><td>1,100+ domains across Tranco spectrum + international commerce + 5 major US retailer verticals</td></tr>
+<tr><td><strong>Calibration dataset</strong></td><td style="color:var(--text-dim)">Next</td><td>Every signed bundle has a check_id. Outcome feedback from registered merchants and API consumers retroactively backtests scores against real fraud outcomes. Over 6-12 months this becomes the real moat.</td></tr>
+<tr><td><strong>KYC infrastructure</strong></td><td style="color:var(--text-dim)">Planned</td><td>Enhanced, KYC-Verified, Enterprise tiers with partner integrations (Jumio / Onfido / Persona / OpenCorporates / Plaid)</td></tr>
+<tr><td><strong>Infrastructure scoring v2</strong></td><td style="color:var(--text-dim)">Planned</td><td>Parent company linkage (cloudfront.net to Amazon), x402/MPP endpoint detection, API-specific checklists</td></tr>
+<tr><td><strong>Historical WHOIS integration</strong></td><td style="color:var(--text-dim)">Planned</td><td>Enables true registrant-change detection without the false positives of the updated_date heuristic</td></tr>
+<tr><td><strong>Agent SDK reference integration</strong></td><td style="color:var(--text-dim)">Priority next</td><td>One widely-used agent framework (LangChain, CrewAI, OpenAI Swarm, Anthropic tool-use) calls OTT before payments in its reference implementation. Single most impactful GTM move.</td></tr>
+<tr><td><strong>Regional KYC partners</strong></td><td style="color:var(--text-dim)">Planned</td><td>Companies House (UK), VIES (EU VAT), regional ID verification providers</td></tr>
+<tr><td><strong>PostgreSQL migration</strong></td><td style="color:var(--text-dim)">At scale</td><td>Move from SQLite when registry exceeds 10K domains</td></tr>
+<tr><td><strong>Multi-region</strong></td><td style="color:var(--text-dim)">Future</td><td>Geographic distribution for sub-200ms global response times</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- Tech -->
+<section>
+<div class="container">
+<p class="label">Technical Concepts</p>
+<h2>Key technologies explained</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">For team members and stakeholders who want to understand the technical foundations.</p>
+
+<div class="card">
+<h4>Ed25519 Cryptographic Signing</h4>
+<p style="font-size:0.875rem;color:var(--text-light)">Ed25519 is a digital signature algorithm designed by Daniel Bernstein. We use it to sign every trust token so that the result can be verified without calling our API. Think of it as a tamper-proof seal: if anyone changes even one character of the token after we sign it, the verification fails. The private key never leaves our server. The public key is published openly for anyone to verify against. This is the same technology that secures SSH connections and Signal messages.</p>
+</div>
+
+<div class="card">
+<h4>W3C Verifiable Credentials</h4>
+<p style="font-size:0.875rem;color:var(--text-light)">Our trust tokens follow the W3C Verifiable Credentials standard, the same format governments and banks are adopting for digital identity. This means any system that already understands VCs can read our tokens without custom integration. The standard defines how credentials are structured, signed, and verified. We are building on an existing standard rather than inventing a proprietary format.</p>
+</div>
+
+<div class="card">
+<h4>DID (Decentralized Identifier)</h4>
+<p style="font-size:0.875rem;color:var(--text-light)">Our digital identity is <code style="font-family:var(--mono);font-size:0.85rem">did:web:opentrusttoken.com</code>. This is a W3C standard for creating digital identities that don't depend on any single authority. Our DID document (at /.well-known/did.json) contains our public signing key. Any agent worldwide can look up our DID, find our public key, and verify our tokens without any prior relationship with us.</p>
+</div>
+
+<div class="card">
+<h4>Tranco List</h4>
+<p style="font-size:0.875rem;color:var(--text-light)">A research-grade ranking of the top 1 million websites by traffic, combining data from multiple sources (Cloudflare Radar, Cisco Umbrella, Majestic, Quantcast). More stable and resistant to manipulation than any single traffic ranking. We use it as a reputation signal (high traffic = established), as an identity signal (top-50K sites are definitionally who they claim to be), and as one of the four conditions gating the well-known brand anchor. The composition of "in the top 50K for 5+ years, with clean reputation and valid SSL" is what anchors automatic PROCEED for established public brands even when our crawler cannot reach their homepage.</p>
+</div>
+
+<div class="card">
+<h4>DNS Blocklists</h4>
+<p style="font-size:0.875rem;color:var(--text-light)">Spamhaus DBL, SURBL, and URLhaus maintain databases of domains involved in spam, phishing, and malware distribution. We query these via DNS lookup (instant, no API key needed). If a domain appears on any blocklist, it receives a critical flag that overrides the score to DENY regardless of other signals.</p>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="container">
+<img src="/ottlogo.png" alt="OpenTrustToken">
+<p>Trust verification for AI agent commerce</p>
+<p style="margin-top:0.25rem"><a href="https://opentrusttoken.com" style="color:var(--text-dim)">opentrusttoken.com</a> | <a href="https://api.opentrusttoken.com/docs" style="color:var(--text-dim)">API Docs</a></p>
+</div>
+</footer>
+
+</body>
+</html>

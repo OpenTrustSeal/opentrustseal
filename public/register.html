@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register Your Domain - OpenTrustToken</title>
+<link rel="icon" type="image/png" href="/ottlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy:#0f1f30;--blue:#2878b8;--blue-dark:#1d5f94;--blue-light:#e8f2fb;
+--green:#27ae60;--green-light:#d1fae5;
+--amber:#d97706;--amber-light:#fef3c7;
+--red:#dc2626;
+--white:#ffffff;--off-white:#f7f8fa;
+--text:#1f2937;--text-light:#4b5563;--text-dim:#9ca3af;
+--border:#e5e7eb;
+--font:'Inter',system-ui,sans-serif;
+--mono:'SF Mono','Cascadia Code',monospace;
+--radius:8px;--radius-lg:12px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);color:var(--text);background:var(--white);line-height:1.6}
+a{color:var(--blue);text-decoration:none}
+a:hover{color:var(--blue-dark)}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+.skip-link{position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;background:var(--blue);color:#fff;font-weight:600;border-radius:0 0 8px 8px;z-index:1000}
+.skip-link:focus{top:0}
+h1{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-0.02em}
+h2{font-size:1.2rem;font-weight:700;margin-bottom:0.5rem}
+h3{font-size:1rem;font-weight:600;margin-bottom:0.25rem}
+.container{max-width:640px;margin:0 auto;padding:0 1.5rem}
+
+/* Nav */
+.nav{padding:0.75rem 0;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.95)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:640px;margin:0 auto;padding:0 1.5rem}
+.nav-brand img{height:28px}
+
+/* Page */
+.page{padding:2.5rem 0 4rem}
+.page h1{margin-bottom:0.5rem;color:var(--navy)}
+.page .subtitle{color:var(--text-light);margin-bottom:2rem;font-size:0.95rem}
+
+/* Steps */
+.steps{display:flex;gap:0.5rem;margin-bottom:2rem}
+.step-pill{padding:0.4rem 1rem;border-radius:100px;font-size:0.8rem;font-weight:600;border:1px solid var(--border);color:var(--text-dim)}
+.step-pill.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.step-pill.done{background:var(--green-light);color:#065f46;border-color:#a7f3d0}
+
+/* Form */
+.form-section{margin-bottom:1.5rem}
+.form-section h3{color:var(--navy);margin-bottom:0.75rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border)}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:0.25rem}
+.field .hint{font-size:0.78rem;color:var(--text-dim);margin-bottom:0.25rem}
+.field input,.field select{width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:0.9rem;color:var(--text);background:var(--white)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,120,184,0.1)}
+.field .required{color:var(--red);margin-left:0.15rem}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
+.private-tag{display:inline-block;font-size:0.65rem;font-weight:600;padding:0.1rem 0.35rem;border-radius:3px;background:var(--amber-light);color:var(--amber);margin-left:0.35rem;text-transform:uppercase;letter-spacing:0.02em}
+.public-tag{display:inline-block;font-size:0.65rem;font-weight:600;padding:0.1rem 0.35rem;border-radius:3px;background:var(--blue-light);color:var(--blue);margin-left:0.35rem;text-transform:uppercase;letter-spacing:0.02em}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:0.7rem 1.5rem;border:none;border-radius:var(--radius);font-family:var(--font);font-weight:600;font-size:0.9rem;cursor:pointer;min-height:44px;transition:background 0.2s}
+.btn-primary{background:var(--blue);color:#fff;width:100%}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+
+/* Verification panel */
+.verify-panel{display:none;background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-top:1rem}
+.verify-panel.visible{display:block}
+.verify-panel h2{color:var(--navy)}
+.verify-steps{list-style:none;margin:1rem 0}
+.verify-steps li{padding:0.5rem 0;font-size:0.9rem;color:var(--text-light);border-bottom:1px solid var(--border)}
+.verify-steps li:last-child{border-bottom:none}
+.code-box{background:var(--navy);color:#d1d5db;padding:0.75rem 1rem;border-radius:var(--radius);font-family:var(--mono);font-size:0.82rem;word-break:break-all;margin:0.5rem 0}
+
+/* Result */
+.result-panel{display:none;margin-top:1.5rem}
+.result-panel.visible{display:block}
+.result-card{background:var(--green-light);border:1px solid #a7f3d0;border-radius:var(--radius-lg);padding:1.5rem}
+.result-card.pending{background:var(--amber-light);border-color:#fcd34d}
+.result-card.error{background:#fee2e2;border-color:#fca5a5}
+.result-card h2{margin-bottom:0.5rem}
+.result-card p{font-size:0.9rem;color:var(--text-light)}
+
+/* Score impact */
+.score-impact{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-top:1rem}
+.impact-row{display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;font-size:0.85rem}
+.impact-row .pts{font-family:var(--mono);font-weight:600;color:var(--green)}
+.impact-row .pts.pending{color:var(--text-dim)}
+
+/* Privacy notice */
+.privacy-notice{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin:1.5rem 0;font-size:0.82rem;color:var(--text-light)}
+.privacy-notice strong{color:var(--text)}
+
+@media(max-width:640px){
+  .field-row{grid-template-columns:1fr}
+  .steps{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){*{transition-duration:0.01ms !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav class="nav">
+<div class="nav-inner">
+<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<a href="/" style="font-size:0.85rem;color:var(--text-light)">Back to home</a>
+</div>
+</nav>
+
+<main id="main" class="page">
+<div class="container">
+
+<h1>Register your domain</h1>
+<p class="subtitle">Prove ownership and provide business details to boost your trust score. More verified data means a higher score.</p>
+
+<div class="steps" id="steps">
+<span class="step-pill active" id="step1-pill">1. Business info</span>
+<span class="step-pill" id="step2-pill">2. Verify domain</span>
+<span class="step-pill" id="step3-pill">3. Score updated</span>
+</div>
+
+<!-- Step 1: Registration Form -->
+<form id="reg-form">
+
+<div class="form-section">
+<h3>Domain</h3>
+<div class="field">
+<label for="domain">Domain name <span class="required">*</span></label>
+<input type="text" id="domain" placeholder="yoursite.com" required autocapitalize="none" spellcheck="false">
+</div>
+</div>
+
+<div class="form-section">
+<h3>Business Information <span class="public-tag">Public</span></h3>
+<div class="field">
+<label for="biz-name">Legal business name <span class="required">*</span></label>
+<div class="hint">Cross-referenced against WHOIS and SSL certificate</div>
+<input type="text" id="biz-name" placeholder="ACME Corporation Inc." required>
+</div>
+<div class="field-row">
+<div class="field">
+<label for="country">Country <span class="required">*</span></label>
+<input type="text" id="country" placeholder="US" required>
+</div>
+<div class="field">
+<label for="state">State / Province</label>
+<input type="text" id="state" placeholder="CA">
+</div>
+</div>
+<div class="field-row">
+<div class="field">
+<label for="biz-type">Business type <span class="required">*</span></label>
+<select id="biz-type" required>
+<option value="">Select...</option>
+<option value="corporation">Corporation</option>
+<option value="llc">LLC</option>
+<option value="sole_proprietor">Sole Proprietor</option>
+<option value="nonprofit">Nonprofit</option>
+<option value="government">Government</option>
+<option value="other">Other</option>
+</select>
+</div>
+<div class="field">
+<label for="category">Website category <span class="required">*</span></label>
+<select id="category" required>
+<option value="">Select...</option>
+<option value="ecommerce">E-commerce</option>
+<option value="saas">SaaS / Software</option>
+<option value="api_service">API / Infrastructure</option>
+<option value="healthcare">Healthcare</option>
+<option value="finance">Finance</option>
+<option value="media">Media / Publishing</option>
+<option value="education">Education</option>
+<option value="other">Other</option>
+</select>
+</div>
+</div>
+<div class="field">
+<label for="year">Year established</label>
+<input type="number" id="year" placeholder="2020" min="1900" max="2026">
+</div>
+</div>
+
+<div class="form-section">
+<h3>Contact Information <span class="private-tag">Private</span></h3>
+<div class="hint" style="margin-bottom:0.75rem;font-size:0.82rem;color:var(--text-dim)">Used for verification only. Never shown in API responses.</div>
+<div class="field">
+<label for="email">Contact email <span class="required">*</span></label>
+<div class="hint">Checked if domain matches (e.g. you@yoursite.com = +3 points)</div>
+<input type="email" id="email" placeholder="you@yoursite.com" required>
+</div>
+<div class="field">
+<label for="phone">Business phone</label>
+<div class="hint">Compared with phone number on your website (+3 points if match)</div>
+<input type="tel" id="phone" placeholder="+1 (555) 123-4567">
+</div>
+<div class="field">
+<label for="address">Business address</label>
+<div class="hint">Verified as real commercial location (+3 points)</div>
+<input type="text" id="address" placeholder="123 Main St, City, State, ZIP">
+</div>
+</div>
+
+<div class="form-section">
+<h3>Verification Data <span class="private-tag">Private</span></h3>
+<div class="field">
+<label for="ein">EIN / Tax ID / VAT Number</label>
+<div class="hint">Verified against tax registry (+5 points). Never shared.</div>
+<input type="text" id="ein" placeholder="12-3456789 or VAT number">
+</div>
+<div class="field-row">
+<div class="field">
+<label for="twitter">Twitter / X profile</label>
+<input type="url" id="twitter" placeholder="https://x.com/yourcompany">
+</div>
+<div class="field">
+<label for="linkedin">LinkedIn company page</label>
+<input type="url" id="linkedin" placeholder="https://linkedin.com/company/yourco">
+</div>
+</div>
+</div>
+
+<div class="form-section">
+<h3>Verification Method</h3>
+<div class="field-row">
+<div class="field">
+<label><input type="radio" name="method" value="dns" checked> DNS TXT Record</label>
+</div>
+<div class="field">
+<label><input type="radio" name="method" value="http"> HTTP File Upload</label>
+</div>
+</div>
+</div>
+
+<div class="privacy-notice">
+<strong>Privacy:</strong> Business name, country, type, and category are public (shown in API responses). Contact name, email, phone, address, EIN, and social profiles are private (used for verification only, never exposed). You can request deletion of all data at any time.
+</div>
+
+<button type="submit" class="btn btn-primary" id="submit-btn">Register and Get Verification Code</button>
+</form>
+
+<!-- Step 2: Verification -->
+<div class="verify-panel" id="verify-panel">
+<h2>Verify your domain</h2>
+<p style="color:var(--text-light);font-size:0.9rem;margin-bottom:1rem" id="verify-intro"></p>
+<ol class="verify-steps" id="verify-steps-list"></ol>
+<div class="code-box" id="verify-code"></div>
+<p style="font-size:0.85rem;color:var(--text-dim);margin:1rem 0">After adding the record, click below. DNS changes may take a few minutes to propagate.</p>
+<button type="button" class="btn btn-primary" id="verify-btn">Check Verification</button>
+<div class="result-panel" id="verify-result"></div>
+</div>
+
+<!-- Step 3: Result -->
+<div class="result-panel" id="final-result"></div>
+
+</div>
+</main>
+
+<script>
+(function(){
+'use strict';
+
+var API = 'https://api.opentrusttoken.com';
+var form = document.getElementById('reg-form');
+var verifyPanel = document.getElementById('verify-panel');
+var verifyBtn = document.getElementById('verify-btn');
+var currentDomain = '';
+
+form.addEventListener('submit', function(e){
+  e.preventDefault();
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Registering...';
+
+  var method = document.querySelector('input[name="method"]:checked').value;
+  currentDomain = document.getElementById('domain').value.trim().toLowerCase();
+
+  var body = {
+    domain: currentDomain,
+    business_name: document.getElementById('biz-name').value,
+    country: document.getElementById('country').value,
+    state_province: document.getElementById('state').value || null,
+    business_type: document.getElementById('biz-type').value,
+    website_category: document.getElementById('category').value,
+    contact_email: document.getElementById('email').value,
+    year_established: document.getElementById('year').value ? parseInt(document.getElementById('year').value) : null,
+    contact_name: null,
+    phone: document.getElementById('phone').value || null,
+    address: document.getElementById('address').value || null,
+    ein_tax_id: document.getElementById('ein').value || null,
+    social_twitter: document.getElementById('twitter').value || null,
+    social_linkedin: document.getElementById('linkedin').value || null,
+    verification_method: method
+  };
+
+  fetch(API + '/v1/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    btn.disabled = false;
+    btn.textContent = 'Register and Get Verification Code';
+
+    if(d.error){
+      alert(d.message || d.error);
+      return;
+    }
+
+    // Move to step 2
+    form.style.display = 'none';
+    document.getElementById('step1-pill').className = 'step-pill done';
+    document.getElementById('step2-pill').className = 'step-pill active';
+
+    var inst = d.instructions;
+    document.getElementById('verify-intro').textContent =
+      'Add the following ' + (method === 'dns' ? 'DNS TXT record' : 'file') + ' to verify ownership of ' + currentDomain;
+
+    var stepsHtml = '';
+    if(inst && inst.steps){
+      for(var i = 0; i < inst.steps.length; i++){
+        stepsHtml += '<li>' + esc(inst.steps[i]) + '</li>';
+      }
+    }
+    document.getElementById('verify-steps-list').innerHTML = stepsHtml;
+    document.getElementById('verify-code').textContent = d.verificationCode;
+
+    verifyPanel.classList.add('visible');
+  })
+  .catch(function(){
+    btn.disabled = false;
+    btn.textContent = 'Register and Get Verification Code';
+    alert('Error connecting to API. Please try again.');
+  });
+});
+
+verifyBtn.addEventListener('click', function(){
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Checking...';
+
+  fetch(API + '/v1/register/verify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({domain: currentDomain})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = 'Check Verification';
+
+    var resultDiv = document.getElementById('verify-result');
+    resultDiv.classList.add('visible');
+
+    if(d.verified){
+      document.getElementById('step2-pill').className = 'step-pill done';
+      document.getElementById('step3-pill').className = 'step-pill active';
+      verifyPanel.classList.remove('visible');
+
+      var finalDiv = document.getElementById('final-result');
+      finalDiv.classList.add('visible');
+
+      var profile = d.profile || {};
+      var vs = d.verificationScore || 0;
+
+      var html = '<div class="result-card">';
+      html += '<h2>Domain verified</h2>';
+      html += '<p>' + currentDomain + ' is now registered with OpenTrustToken. Your verification score: <strong>+' + vs + ' points</strong></p>';
+      html += '</div>';
+
+      html += '<div class="score-impact">';
+      html += '<h3 style="margin-bottom:0.5rem">Verification breakdown</h3>';
+      html += impactRow('Domain ownership', profile.domainVerified, 3);
+      html += impactRow('Email matches domain', profile.emailDomainMatch, 3);
+      html += impactRow('Business name matches WHOIS', profile.businessNameWhoisMatch, 5);
+      html += impactRow('Business name matches SSL cert', profile.businessNameCertMatch, 5);
+      html += impactRow('Phone matches site', profile.phoneVerified, 3);
+      html += impactRow('Address verified', profile.addressVerified, 3);
+      html += impactRow('Social media verified', profile.socialVerified, 3);
+      html += impactRow('EIN/VAT verified', profile.einVerified, 5);
+      html += impactRow('Business registry match', profile.businessRegistryMatch, 5);
+      html += '</div>';
+
+      html += '<p style="margin-top:1rem;font-size:0.9rem;color:var(--text-light)">Check your updated score: <a href="/?check=' + currentDomain + '">opentrusttoken.com</a></p>';
+
+      finalDiv.innerHTML = html;
+    } else {
+      resultDiv.innerHTML = '<div class="result-card pending"><h2>Not yet verified</h2><p>' + esc(d.message || 'Verification record not found. Make sure you added it and wait for DNS propagation.') + '</p></div>';
+    }
+  })
+  .catch(function(){
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = 'Check Verification';
+  });
+});
+
+function impactRow(label, verified, pts){
+  var cls = verified ? 'pts' : 'pts pending';
+  var val = verified ? '+' + pts : '--';
+  return '<div class="impact-row"><span>' + label + '</span><span class="' + cls + '">' + val + '</span></div>';
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+})();
+</script>
+
+</body>
+</html>

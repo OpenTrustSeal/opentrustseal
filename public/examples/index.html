@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integration Examples - OpenTrustToken</title>
+<link rel="icon" type="image/png" href="/ottlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy:#0f1f30;--blue:#2878b8;--blue-dark:#1d5f94;
+--green:#27ae60;--green-light:#d1fae5;--green-dark:#065f46;
+--amber:#d97706;--amber-light:#fef3c7;
+--red:#dc2626;--red-light:#fee2e2;
+--white:#ffffff;--off-white:#f7f8fa;
+--text:#1f2937;--text-light:#4b5563;--text-dim:#9ca3af;
+--border:#e5e7eb;
+--font:'Inter',system-ui,sans-serif;
+--mono:'JetBrains Mono','SF Mono',monospace;
+--radius:8px;--radius-lg:12px;
+}
+body{font-family:var(--font);color:var(--text);background:var(--white);line-height:1.6}
+a{color:var(--blue);text-decoration:none}
+a:hover{color:var(--blue-dark)}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+.skip-link{position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;background:var(--blue);color:#fff;font-weight:600;border-radius:0 0 8px 8px;z-index:1000}
+.skip-link:focus{top:0}
+h1{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-0.02em}
+h2{font-size:1.3rem;font-weight:700;margin-bottom:0.5rem;color:var(--navy)}
+h3{font-size:1rem;font-weight:600}
+.container{max-width:880px;margin:0 auto;padding:0 1.5rem}
+
+.nav{padding:0.75rem 0;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.95)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:880px;margin:0 auto;padding:0 1.5rem}
+.nav-brand img{height:28px}
+.nav-links{display:flex;gap:1rem;font-size:0.85rem}
+.nav-links a{color:var(--text-light);font-weight:500;min-height:44px;display:flex;align-items:center}
+
+.page{padding:2rem 0 4rem}
+.page h1{margin-bottom:0.5rem;color:var(--navy)}
+.page .subtitle{color:var(--text-light);margin-bottom:2rem}
+
+/* Example sections */
+.example{margin-bottom:3rem;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.example-header{padding:1.25rem 1.5rem;background:var(--off-white);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem}
+.example-header h2{margin:0}
+.example-tag{font-size:0.7rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;text-transform:uppercase;letter-spacing:0.03em}
+.example-tag.beginner{background:var(--green-light);color:var(--green-dark)}
+.example-tag.intermediate{background:var(--amber-light);color:var(--amber)}
+.example-tag.advanced{background:var(--blue);color:#fff;opacity:0.8}
+.example-body{padding:1.5rem}
+.example-body p{color:var(--text-light);font-size:0.9rem;margin-bottom:1rem}
+
+/* Code blocks */
+.code{background:var(--navy);border-radius:var(--radius);padding:1.25rem 1.5rem;font-family:var(--mono);font-size:0.8rem;overflow-x:auto;margin:1rem 0;line-height:1.7;color:#d1d5db}
+.code .comment{color:#6b7280}
+.code .kw{color:#93c5fd}
+.code .fn{color:#a5b4fc}
+.code .str{color:#fbbf24}
+.code .num{color:#86efac}
+.code .res{color:#d1d5db}
+
+/* Output blocks */
+.output{background:#fafafa;border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;font-family:var(--mono);font-size:0.78rem;overflow-x:auto;margin:1rem 0;line-height:1.6;color:var(--text-light)}
+.output-label{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);margin-bottom:0.25rem}
+.output .pass{color:var(--green)}
+.output .warn{color:var(--amber)}
+.output .fail{color:var(--red)}
+.output .bold{color:var(--text);font-weight:600}
+
+/* Install box */
+.install{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:2rem}
+.install h3{margin-bottom:0.5rem;color:var(--navy)}
+.install code{font-family:var(--mono);font-size:0.85rem;background:var(--navy);color:#d1d5db;padding:0.2rem 0.5rem;border-radius:4px}
+
+footer{padding:2rem 0;text-align:center;color:var(--text-dim);font-size:0.82rem;border-top:1px solid var(--border)}
+footer img{height:32px;margin:0 auto 0.5rem;display:block}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav class="nav">
+<div class="nav-inner">
+<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<div class="nav-links">
+<a href="/">Home</a>
+<a href="/dashboard.html">Dashboard</a>
+<a href="https://api.opentrusttoken.com/docs">API Docs</a>
+</div>
+</div>
+</nav>
+
+<main id="main" class="page">
+<div class="container">
+
+<h1>Integration Examples</h1>
+<p class="subtitle">Working code showing how to integrate OpenTrustToken into AI agents, payment flows, and applications.</p>
+
+<div class="install">
+<h3>Setup</h3>
+<p style="font-size:0.9rem;color:var(--text-light)">Python SDK: <code>pip install httpx</code> (SDK is included in examples, will be on PyPI at launch)</p>
+<p style="font-size:0.9rem;color:var(--text-light);margin-top:0.25rem">Or just use the API directly: <code>GET https://api.opentrusttoken.com/v1/check/{domain}</code></p>
+</div>
+
+<!-- Example 1 -->
+<div class="example">
+<div class="example-header">
+<h2>1. Basic Trust Check</h2>
+<span class="example-tag beginner">Beginner</span>
+</div>
+<div class="example-body">
+<p>The simplest integration. Check a domain before making a payment. Act on the recommendation.</p>
+
+<div class="code">
+<span class="kw">from</span> opentrusttoken <span class="kw">import</span> check<br>
+<br>
+result = check(<span class="str">"stripe.com"</span>)<br>
+<br>
+<span class="kw">if</span> result.is_blocked:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">"Payment refused:"</span>, result.reasoning)<br>
+<span class="kw">elif</span> result.is_risky <span class="kw">and</span> amount > <span class="num">100</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">"Amount exceeds CAUTION limit. Need user approval."</span>)<br>
+<span class="kw">elif</span> result.is_safe:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">"Payment authorized."</span>)<br>
+<br>
+<span class="comment"># Access signal details</span><br>
+print(result.trust_score)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 83</span><br>
+print(result.signals.ssl.score)&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 100</span><br>
+print(result.jurisdiction.country)&nbsp;<span class="comment"># "US"</span>
+</div>
+
+<div class="output-label">Output: stripe.com</div>
+<div class="output">
+<span class="bold">--- Attempting to pay $49.99 to stripe.com ---</span><br>
+<br>
+Domain:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; stripe.com<br>
+Trust Score:&nbsp;&nbsp;&nbsp; <span class="pass">83/100</span><br>
+Recommendation: <span class="pass">PROCEED</span><br>
+Category:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;infrastructure<br>
+Country:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;US (US)<br>
+<br>
+Signals:<br>
+&nbsp;&nbsp;Reputation:&nbsp; 93/100<br>
+&nbsp;&nbsp;Identity:&nbsp;&nbsp;&nbsp; 55/55<br>
+&nbsp;&nbsp;Content:&nbsp;&nbsp;&nbsp;&nbsp; 95/100<br>
+&nbsp;&nbsp;Domain Age:&nbsp; 100/100<br>
+&nbsp;&nbsp;SSL/TLS:&nbsp;&nbsp;&nbsp;&nbsp; 100/100<br>
+&nbsp;&nbsp;DNS:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 60/100<br>
+<br>
+<span class="pass">SAFE: Established domain (5+ years), valid SSL, clean reputation.</span><br>
+<span class="pass">Payment of $49.99 authorized.</span>
+</div>
+
+<div class="output-label">Output: fake domain</div>
+<div class="output">
+<span class="bold">--- Attempting to pay $899.00 to totally-fake-xyz123.com ---</span><br>
+<br>
+Trust Score:&nbsp;&nbsp;&nbsp; <span class="fail">23/100</span><br>
+Recommendation: <span class="fail">DENY</span><br>
+Flags:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NO_IDENTITY, NO_SSL<br>
+<br>
+<span class="fail">BLOCKED: no SSL detected, no identity verification on file.</span><br>
+<span class="fail">Payment refused.</span>
+</div>
+</div>
+</div>
+
+<!-- Example 2 -->
+<div class="example">
+<div class="example-header">
+<h2>2. LangChain Agent</h2>
+<span class="example-tag intermediate">Intermediate</span>
+</div>
+<div class="example-body">
+<p>An AI agent that autonomously verifies merchants before purchasing. The agent decides on its own when to call the trust verification tool. Works with any LangChain-compatible LLM.</p>
+
+<div class="code">
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> ChatOpenAI<br>
+<span class="kw">from</span> opentrusttoken.integrations.langchain <span class="kw">import</span> OTTVerifyTool<br>
+<br>
+<span class="comment"># Add the trust verification tool to your agent</span><br>
+llm = ChatOpenAI(model=<span class="str">"gpt-4o"</span>)<br>
+tools = [OTTVerifyTool()]<br>
+agent = create_react_agent(llm, tools)<br>
+<br>
+<span class="comment"># The agent now checks merchants automatically</span><br>
+agent.invoke(<span class="str">"Buy a USB-C cable from amazon.com for under $15"</span>)
+</div>
+
+<div class="output-label">Agent simulation output</div>
+<div class="output">
+<span class="bold">TASK: Buy a USB-C cable from amazon.com for under $15</span><br>
+<br>
+Agent: I need to buy from amazon.com.<br>
+Agent: Let me verify this merchant first...<br>
+<br>
+[OTT Tool Response]<br>
+&nbsp;&nbsp;amazon.com: Score <span class="warn">67/100 (CAUTION)</span><br>
+&nbsp;&nbsp;Established domain, valid SSL, clean reputation.<br>
+<br>
+Agent: This merchant scored 67 (CAUTION).<br>
+Agent: Amount $12.99 is within my CAUTION limit.<br>
+<span class="pass">Agent: Proceeding with purchase at amazon.com.</span><br>
+<br>
+<span class="bold">TASK: Order a laptop from totally-fake-xyz123.com</span><br>
+<br>
+[OTT Tool Response]<br>
+&nbsp;&nbsp;totally-fake-xyz123.com: Score <span class="fail">23/100 (DENY)</span><br>
+&nbsp;&nbsp;Flags: NO_IDENTITY, NO_SSL<br>
+<br>
+<span class="fail">Agent: This merchant failed trust verification (score: 23).</span><br>
+<span class="fail">Agent: I cannot proceed. Searching for alternatives...</span>
+</div>
+</div>
+</div>
+
+<!-- Example 3 -->
+<div class="example">
+<div class="example-header">
+<h2>3. Multi-Merchant Comparison</h2>
+<span class="example-tag intermediate">Intermediate</span>
+</div>
+<div class="example-body">
+<p>Agent compares prices across multiple merchants, filters out untrustworthy ones, and recommends the best deal among verified options. The cheapest option ($9.99) gets rejected because it fails trust verification.</p>
+
+<div class="code">
+<span class="kw">from</span> opentrusttoken <span class="kw">import</span> OTTClient<br>
+<br>
+client = OTTClient()<br>
+merchants = [<span class="str">"amazon.com"</span>, <span class="str">"ebay.com"</span>, <span class="str">"scosi.com"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="str">"totally-fake-xyz123.com"</span>, <span class="str">"bestbuy.com"</span>]<br>
+<br>
+<span class="kw">for</span> domain <span class="kw">in</span> merchants:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;result = client.check(domain)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> result.is_blocked:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">f"REJECTED: </span>{domain}<span class="str">"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;trusted.append(domain)
+</div>
+
+<div class="output-label">Output</div>
+<div class="output">
+Agent: Finding the best deal for a Wireless Mouse...<br>
+<br>
+Domain&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Price&nbsp;&nbsp; Score&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Rec&nbsp;&nbsp; Status<br>
+----------------------------------------------------------------------<br>
+amazon.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$ 29.99&nbsp; <span class="warn">67/100&nbsp;&nbsp; CAUTION</span>&nbsp; CAUTION<br>
+ebay.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$ 24.99&nbsp; <span class="pass">78/100&nbsp;&nbsp; PROCEED</span>&nbsp; TRUSTED<br>
+scosi.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$ 27.50&nbsp; <span class="pass">79/100&nbsp;&nbsp; PROCEED</span>&nbsp; TRUSTED<br>
+totally-fake-xyz123.com&nbsp;&nbsp;&nbsp;&nbsp;$&nbsp; 9.99&nbsp; <span class="fail">23/100&nbsp;&nbsp;&nbsp;&nbsp; DENY</span>&nbsp; REJECTED<br>
+bestbuy.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$ 31.99&nbsp; <span class="warn">55/100&nbsp;&nbsp; CAUTION</span>&nbsp; CAUTION<br>
+<br>
+<span class="fail">Filtered out 1 untrustworthy merchant:</span><br>
+<span class="fail">&nbsp;&nbsp;totally-fake-xyz123.com (score 23, $9.99)</span><br>
+<br>
+<span class="pass">Best trusted deal: ebay.com at $24.99</span><br>
+<span class="pass">&nbsp;&nbsp;Trust score: 78/100 (PROCEED)</span>
+</div>
+</div>
+</div>
+
+<!-- Example 4 -->
+<div class="example">
+<div class="example-header">
+<h2>4. Async Batch Checking</h2>
+<span class="example-tag advanced">Advanced</span>
+</div>
+<div class="example-body">
+<p>Check multiple domains concurrently. Useful for verifying a portfolio of merchants, building trust dashboards, or pre-screening a list of sites.</p>
+
+<div class="code">
+<span class="kw">import</span> asyncio<br>
+<span class="kw">from</span> opentrusttoken <span class="kw">import</span> OTTClient<br>
+<br>
+<span class="kw">async def</span> <span class="fn">batch_check</span>():<br>
+&nbsp;&nbsp;&nbsp;&nbsp;client = OTTClient()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;domains = [<span class="str">"stripe.com"</span>, <span class="str">"google.com"</span>, <span class="str">"amazon.com"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="str">"github.com"</span>, <span class="str">"cloudflare.com"</span>]<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;results = <span class="kw">await</span> client.async_check_multiple(domains)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> r <span class="kw">in</span> sorted(results, key=<span class="kw">lambda</span> x: -x.trust_score):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">f"</span>{r.domain}: {r.trust_score} ({r.recommendation})<span class="str">"</span>)<br>
+<br>
+asyncio.run(batch_check())
+</div>
+
+<div class="output-label">Output (10 domains in 0.2s)</div>
+<div class="output">
+Checking 10 domains concurrently...<br>
+<br>
+Domain&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Score&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Rec&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Category<br>
+----------------------------------------------------------------------<br>
+stripe.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">83/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; infrastructure<br>
+github.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">81/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; infrastructure<br>
+cloudflare.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">79/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; infrastructure<br>
+scosi.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">79/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; consumer<br>
+apple.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">79/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; consumer<br>
+ebay.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">78/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; api_service<br>
+microsoft.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">77/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; consumer<br>
+shopify.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">75/100&nbsp;&nbsp; PROCEED</span>&nbsp;&nbsp; api_service<br>
+google.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="warn">73/100&nbsp;&nbsp; CAUTION</span>&nbsp;&nbsp; api_service<br>
+amazon.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="warn">67/100&nbsp;&nbsp; CAUTION</span>&nbsp;&nbsp; consumer<br>
+<br>
+Completed in 0.2s (0.0s per domain)<br>
+Summary: 8 PROCEED, 2 CAUTION, 0 DENY
+</div>
+</div>
+</div>
+
+<!-- Raw HTTP -->
+<div class="example">
+<div class="example-header">
+<h2>5. Raw HTTP (Any Language)</h2>
+<span class="example-tag beginner">Any Language</span>
+</div>
+<div class="example-body">
+<p>No SDK needed. The API is standard REST. Use curl, fetch, requests, or any HTTP client in any language.</p>
+
+<div class="code">
+<span class="comment"># curl</span><br>
+curl https://api.opentrusttoken.com/v1/check/merchant.com<br>
+<br>
+<span class="comment"># JavaScript</span><br>
+<span class="kw">const</span> r = <span class="kw">await</span> fetch(<span class="str">'https://api.opentrusttoken.com/v1/check/merchant.com'</span>);<br>
+<span class="kw">const</span> data = <span class="kw">await</span> r.json();<br>
+<span class="kw">if</span> (data.recommendation === <span class="str">'DENY'</span>) <span class="kw">throw new</span> Error(data.reasoning);<br>
+<br>
+<span class="comment"># Go</span><br>
+resp, _ := http.Get(<span class="str">"https://api.opentrusttoken.com/v1/check/merchant.com"</span>)<br>
+<br>
+<span class="comment"># Ruby</span><br>
+response = Net::HTTP.get(URI(<span class="str">"https://api.opentrusttoken.com/v1/check/merchant.com"</span>))
+</div>
+
+<div class="output-label">JSON Response</div>
+<div class="code">
+{<br>
+&nbsp;&nbsp;<span class="str">"domain"</span>: <span class="str">"merchant.com"</span>,<br>
+&nbsp;&nbsp;<span class="str">"trustScore"</span>: <span class="num">81</span>,<br>
+&nbsp;&nbsp;<span class="str">"recommendation"</span>: <span class="str">"PROCEED"</span>,<br>
+&nbsp;&nbsp;<span class="str">"reasoning"</span>: <span class="str">"Established domain, valid SSL..."</span>,<br>
+&nbsp;&nbsp;<span class="str">"siteCategory"</span>: <span class="str">"consumer"</span>,<br>
+&nbsp;&nbsp;<span class="str">"jurisdiction"</span>: { <span class="str">"country"</span>: <span class="str">"US"</span>, <span class="str">"crossBorderRisk"</span>: <span class="str">"standard"</span> },<br>
+&nbsp;&nbsp;<span class="str">"signals"</span>: { ... },<br>
+&nbsp;&nbsp;<span class="str">"checklist"</span>: [ ... ],<br>
+&nbsp;&nbsp;<span class="str">"signature"</span>: <span class="str">"z3FXQ...ed25519"</span><br>
+}
+</div>
+</div>
+</div>
+
+</div>
+</main>
+
+<footer>
+<div class="container">
+<img src="/ottlogo.png" alt="OpenTrustToken">
+<p><a href="https://api.opentrusttoken.com/docs">API Docs</a></p>
+</div>
+</footer>
+
+</body>
+</html>

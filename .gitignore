@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.pytest_cache/
+
+# Data (stays on VPS, not in repo)
+server/data/
+server/keys/
+server/logs/
+*.db
+
+# Environment / credentials
+.env
+*.env
+credentials
+server/tests/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Exports (generated, not tracked)
+exports/

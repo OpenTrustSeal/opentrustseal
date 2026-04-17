@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - OpenTrustToken</title>
+<link rel="icon" type="image/png" href="/ottlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy:#0f1f30;--blue:#2878b8;--blue-dark:#1d5f94;--blue-light:#e8f2fb;
+--green:#27ae60;--green-light:#d1fae5;--green-dark:#065f46;
+--amber:#d97706;--amber-light:#fef3c7;--amber-dark:#92400e;
+--red:#dc2626;--red-light:#fee2e2;
+--white:#ffffff;--off-white:#f7f8fa;
+--text:#1f2937;--text-light:#4b5563;--text-dim:#9ca3af;
+--border:#e5e7eb;--border-light:#f3f4f6;
+--font:'Inter',system-ui,sans-serif;
+--mono:'SF Mono','Cascadia Code',monospace;
+--radius:8px;--radius-lg:12px;
+}
+body{font-family:var(--font);color:var(--text);background:var(--off-white);line-height:1.6}
+a{color:var(--blue);text-decoration:none}
+a:hover{color:var(--blue-dark)}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+.skip-link{position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;background:var(--blue);color:#fff;font-weight:600;border-radius:0 0 8px 8px;z-index:1000}
+.skip-link:focus{top:0}
+h1{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em}
+h2{font-size:1.15rem;font-weight:700;margin-bottom:0.5rem}
+h3{font-size:0.95rem;font-weight:600;margin-bottom:0.25rem;color:var(--text-light)}
+.container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+
+.nav{padding:0.75rem 0;background:var(--white);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:900px;margin:0 auto;padding:0 1.5rem}
+.nav-brand img{height:28px}
+.nav-links{display:flex;gap:1rem;font-size:0.85rem}
+.nav-links a{color:var(--text-light);font-weight:500;min-height:44px;display:flex;align-items:center}
+
+.page{padding:1.5rem 0 3rem}
+
+/* Domain selector */
+.domain-bar{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.5rem;display:flex;gap:0.75rem;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap}
+.domain-bar input{flex:1;min-width:200px;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:0.9rem}
+.domain-bar input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,120,184,0.1)}
+.domain-bar button{padding:0.6rem 1.25rem;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-weight:600;cursor:pointer;min-height:44px;font-family:var(--font)}
+.domain-bar button:hover{background:var(--blue-dark)}
+
+.loading{display:none;text-align:center;padding:3rem;color:var(--text-dim)}
+.loading.visible{display:block}
+.dashboard{display:none}
+.dashboard.visible{display:block}
+
+/* Score hero */
+.score-hero{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;gap:2rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.score-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.score-circle.proceed{background:var(--green-light);color:var(--green-dark)}
+.score-circle.caution{background:var(--amber-light);color:var(--amber-dark)}
+.score-circle.deny{background:var(--red-light);color:var(--red)}
+.score-circle .num{font-size:2rem;font-weight:800;line-height:1}
+.score-circle .lbl{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.score-meta{flex:1}
+.score-meta h1{margin-bottom:0.25rem;color:var(--navy)}
+.score-meta .rec{display:inline-block;font-size:0.75rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:100px;margin-bottom:0.5rem}
+.score-meta .rec.proceed{background:var(--green-light);color:var(--green-dark)}
+.score-meta .rec.caution{background:var(--amber-light);color:var(--amber-dark)}
+.score-meta .rec.deny{background:var(--red-light);color:var(--red)}
+.score-meta p{font-size:0.9rem;color:var(--text-light)}
+.score-meta .detail{font-size:0.8rem;color:var(--text-dim);margin-top:0.5rem}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem}
+.card.full{grid-column:1/-1}
+
+/* Signal bars */
+.signal-row{display:flex;align-items:center;gap:0.6rem;margin:0.35rem 0;font-size:0.82rem}
+.signal-row .lbl{width:90px;color:var(--text-light);flex-shrink:0}
+.signal-row .track{flex:1;height:8px;background:var(--border-light);border-radius:4px;overflow:hidden}
+.signal-row .fill{height:100%;border-radius:4px;transition:width 0.3s}
+.signal-row .fill.high{background:var(--green)}
+.signal-row .fill.mid{background:var(--amber)}
+.signal-row .fill.low{background:var(--red)}
+.signal-row .pts{width:30px;text-align:right;font-family:var(--mono);font-size:0.78rem;color:var(--text-dim)}
+.signal-row .anchor-badge{flex:1;font-family:var(--mono);font-size:0.72rem;color:var(--text-light);letter-spacing:0.03em;text-transform:uppercase;padding:2px 8px;background:var(--border-light);border-radius:4px;text-align:center}
+.anchor-note{margin-top:0.75rem;padding:0.65rem 0.85rem;background:#f4f1ea;border-left:3px solid #b8944a;border-radius:4px;font-size:0.78rem;color:var(--text-light);line-height:1.45}
+.anchor-note strong{color:#6b5220;font-weight:600}
+
+/* Checklist */
+.cl-item{display:flex;align-items:flex-start;gap:0.5rem;padding:0.5rem 0;border-bottom:1px solid var(--border-light);font-size:0.85rem}
+.cl-item:last-child{border-bottom:none}
+.cl-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.cl-dot.pass{background:var(--green-light);color:var(--green-dark)}
+.cl-dot.fail{background:var(--red-light);color:var(--red)}
+.cl-dot.improve,.cl-dot.available{background:var(--amber-light);color:var(--amber-dark)}
+.cl-text{flex:1;color:var(--text-light)}
+.cl-text strong{color:var(--text);font-weight:600}
+
+/* Registration */
+.reg-row{display:flex;justify-content:space-between;padding:0.35rem 0;font-size:0.82rem;border-bottom:1px solid var(--border-light)}
+.reg-row:last-child{border-bottom:none}
+.reg-val{font-weight:600}
+.reg-val.yes{color:var(--green)}
+.reg-val.no{color:var(--text-dim)}
+
+/* History chart */
+.chart-area{position:relative;height:150px;margin-top:0.5rem}
+.chart-canvas{width:100%;height:100%}
+
+/* Jurisdiction */
+.jurisdiction-row{display:flex;gap:1.5rem;flex-wrap:wrap;font-size:0.85rem;color:var(--text-light)}
+.jurisdiction-row span{display:flex;align-items:center;gap:0.3rem}
+.jurisdiction-row strong{color:var(--text);font-weight:600}
+
+/* Actions */
+.actions{display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap}
+.actions a{padding:0.5rem 1rem;border:1px solid var(--border);border-radius:var(--radius);font-size:0.85rem;font-weight:500;color:var(--text-light)}
+.actions a:hover{border-color:var(--blue);color:var(--blue)}
+.actions a.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.actions a.primary:hover{background:var(--blue-dark)}
+
+@media(max-width:768px){
+  .grid{grid-template-columns:1fr}
+  .score-hero{flex-direction:column;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){*{transition-duration:0.01ms !important}}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav class="nav">
+<div class="nav-inner">
+<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<div class="nav-links">
+<a href="/">Check a Site</a>
+<a href="/register.html">Register</a>
+</div>
+</div>
+</nav>
+
+<main id="main" class="page">
+<div class="container">
+
+<div class="domain-bar">
+<input type="text" id="domain-input" placeholder="Enter your domain (e.g. yoursite.com)" autocapitalize="none" spellcheck="false">
+<button id="load-btn" type="button">Load Dashboard</button>
+</div>
+
+<div class="loading" id="loading">Loading dashboard data...</div>
+
+<div class="dashboard" id="dashboard">
+
+<!-- Score hero -->
+<div class="score-hero" id="score-hero">
+<div class="score-circle" id="score-circle">
+<span class="num" id="score-num"></span>
+<span class="lbl">Score</span>
+</div>
+<div class="score-meta">
+<h1 id="domain-title"></h1>
+<span class="rec" id="rec-badge"></span>
+<p id="reasoning"></p>
+<div class="detail" id="meta-detail"></div>
+</div>
+</div>
+
+<div class="grid">
+
+<!-- Signals -->
+<div class="card">
+<h2>Signal Breakdown</h2>
+<div id="signal-bars"></div>
+</div>
+
+<!-- Jurisdiction + Category -->
+<div class="card">
+<h2>Site Profile</h2>
+<div class="jurisdiction-row" id="profile-info"></div>
+<div class="actions" id="actions" style="margin-top:1rem"></div>
+</div>
+
+<!-- Checklist -->
+<div class="card full">
+<h2>Trust Checklist</h2>
+<div id="checklist-summary" style="font-size:0.85rem;color:var(--text-light);margin-bottom:0.75rem"></div>
+<div id="checklist"></div>
+</div>
+
+<!-- Registration -->
+<div class="card">
+<h2>Registration Status</h2>
+<div id="reg-status"></div>
+</div>
+
+<!-- History -->
+<div class="card">
+<h2>Score History</h2>
+<div class="chart-area">
+<canvas class="chart-canvas" id="history-chart"></canvas>
+</div>
+<div id="history-detail" style="font-size:0.78rem;color:var(--text-dim);margin-top:0.5rem"></div>
+</div>
+
+</div>
+</div>
+</div>
+</main>
+
+<script>
+(function(){
+'use strict';
+
+var API = 'https://api.opentrusttoken.com';
+var input = document.getElementById('domain-input');
+var btn = document.getElementById('load-btn');
+var loading = document.getElementById('loading');
+var dashboard = document.getElementById('dashboard');
+
+// Check URL params
+var params = new URLSearchParams(window.location.search);
+if(params.get('domain')){
+  input.value = params.get('domain');
+  setTimeout(loadDashboard, 100);
+}
+
+btn.addEventListener('click', loadDashboard);
+input.addEventListener('keydown', function(e){ if(e.key === 'Enter') loadDashboard(); });
+
+function loadDashboard(){
+  var domain = input.value.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+  if(!domain) return;
+
+  loading.classList.add('visible');
+  dashboard.classList.remove('visible');
+
+  fetch(API + '/v1/check/' + encodeURIComponent(domain) + '/dashboard')
+    .then(function(r){ return r.json(); })
+    .then(function(data){ renderDashboard(data, domain); })
+    .catch(function(){ loading.textContent = 'Error loading data.'; });
+}
+
+function renderDashboard(data, domain){
+  loading.classList.remove('visible');
+  dashboard.classList.add('visible');
+
+  var c = data.current;
+  var reg = data.registration;
+  var history = data.history || [];
+  var signals = c.signals || {};
+  var j = c.jurisdiction || {};
+  var cls = c.recommendation.toLowerCase();
+
+  // Score hero
+  document.getElementById('score-num').textContent = c.trustScore;
+  var circle = document.getElementById('score-circle');
+  circle.className = 'score-circle ' + cls;
+  document.getElementById('domain-title').textContent = domain;
+  var badge = document.getElementById('rec-badge');
+  badge.textContent = c.recommendation;
+  badge.className = 'rec ' + cls;
+  document.getElementById('reasoning').textContent = c.reasoning;
+  document.getElementById('meta-detail').textContent =
+    'Category: ' + (c.siteCategory || 'consumer') +
+    ' | Model: ' + (c.scoringModel || '?') +
+    ' | Checked: ' + (c.checkedAt || '').split('T')[0];
+
+  // Signal bars
+  var flags = c.flags || [];
+  var anchorOnly = flags.indexOf('ANCHOR_ONLY') !== -1;
+  var sigs = [
+    {lbl:'Reputation', s: signals.reputation, key:'reputation'},
+    {lbl:'Identity', s: signals.identity, key:'identity'},
+    {lbl:'Content', s: signals.content, key:'content'},
+    {lbl:'Domain Age', s: signals.domainAge, key:'domainAge'},
+    {lbl:'SSL/TLS', s: signals.ssl, key:'ssl'},
+    {lbl:'DNS', s: signals.dns, key:'dns'},
+  ];
+  var barsHtml = '';
+  for(var i = 0; i < sigs.length; i++){
+    var score = sigs[i].s ? sigs[i].s.score : 0;
+    var fillCls = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+    barsHtml += '<div class="signal-row"><span class="lbl">' + sigs[i].lbl + '</span>';
+    if(anchorOnly && sigs[i].key === 'content'){
+      barsHtml += '<span class="anchor-badge" title="Content fetch skipped: brand anchor covers this domain">Anchor-covered / n-a</span>';
+    } else {
+      barsHtml += '<div class="track"><div class="fill ' + fillCls + '" style="width:' + score + '%"></div></div>';
+      barsHtml += '<span class="pts">' + score + '</span>';
+    }
+    barsHtml += '</div>';
+  }
+  if(anchorOnly){
+    barsHtml += '<div class="anchor-note"><strong>Anchor-only scoring.</strong> This domain is covered by the v1.3 brand anchor (top-Tranco rank, 5+ years old, clean reputation, valid SSL). Content fetch was blocked by the merchant\'s bot protection, but the brand anchor provides a compositional trust floor that does not require homepage content. Quarterly manual content captures are scheduled to backstop this.</div>';
+  }
+  document.getElementById('signal-bars').innerHTML = barsHtml;
+
+  // Profile
+  var profileHtml = '<span><strong>Country:</strong> ' + (j.country || '?') + '</span>';
+  profileHtml += '<span><strong>Framework:</strong> ' + (j.legalFramework || '?') + '</span>';
+  profileHtml += '<span><strong>Risk:</strong> ' + (j.crossBorderRisk || '?') + '</span>';
+  profileHtml += '<span><strong>Category:</strong> ' + (c.siteCategory || 'consumer') + '</span>';
+  document.getElementById('profile-info').innerHTML = profileHtml;
+
+  // Actions
+  var actionsHtml = '';
+  if(!reg){
+    actionsHtml += '<a href="/register.html?domain=' + domain + '" class="primary">Register this domain</a>';
+  }
+  actionsHtml += '<a href="' + API + '/v1/check/' + domain + '?refresh=true" target="_blank">Force re-check</a>';
+  actionsHtml += '<a href="' + API + '/v1/check/' + domain + '" target="_blank">View raw JSON</a>';
+  document.getElementById('actions').innerHTML = actionsHtml;
+
+  // Checklist
+  var cl = c.checklist || [];
+  var cs = c.checklistSummary || {};
+  document.getElementById('checklist-summary').textContent =
+    (cs.passing || 0) + ' passing, ' + (cs.failing || 0) + ' failing, ' + (cs.improvable || 0) + ' to improve';
+
+  var failing = cl.filter(function(x){ return x.status === 'fail' || x.status === 'available'; });
+  var improving = cl.filter(function(x){ return x.status === 'improve'; });
+  var passing = cl.filter(function(x){ return x.status === 'pass'; });
+
+  var clHtml = '';
+  if(failing.length){
+    clHtml += '<h3 style="color:var(--red);margin:0.5rem 0 0.25rem">Needs Attention</h3>';
+    clHtml += renderCl(failing);
+  }
+  if(improving.length){
+    clHtml += '<h3 style="color:var(--amber);margin:0.5rem 0 0.25rem">Recommended</h3>';
+    clHtml += renderCl(improving);
+  }
+  if(passing.length){
+    clHtml += '<h3 style="color:var(--green);margin:0.5rem 0 0.25rem">Passing</h3>';
+    clHtml += renderCl(passing);
+  }
+  document.getElementById('checklist').innerHTML = clHtml;
+
+  // Registration
+  var regHtml = '';
+  if(reg){
+    regHtml += regRow('Status', reg.status === 'active' ? 'Verified' : reg.status, reg.status === 'active');
+    regHtml += regRow('Business Name', reg.businessName || '--', true);
+    regHtml += regRow('Country', reg.country || '--', true);
+    regHtml += regRow('Verification Score', '+' + (reg.verificationScore || 0) + ' points', reg.verificationScore > 0);
+    regHtml += regRow('Email Match', yn(reg.emailDomainMatch), reg.emailDomainMatch);
+    regHtml += regRow('WHOIS Name Match', yn(reg.businessNameWhoisMatch), reg.businessNameWhoisMatch);
+    regHtml += regRow('SSL Cert Match', yn(reg.businessNameCertMatch), reg.businessNameCertMatch);
+    regHtml += regRow('Phone Verified', yn(reg.phoneVerified), reg.phoneVerified);
+    regHtml += regRow('Social Verified', yn(reg.socialVerified), reg.socialVerified);
+    regHtml += regRow('EIN/VAT Verified', yn(reg.einVerified), reg.einVerified);
+  } else {
+    regHtml = '<p style="font-size:0.9rem;color:var(--text-light)">Not registered. <a href="/register.html?domain=' + domain + '">Register to boost your score.</a></p>';
+  }
+  document.getElementById('reg-status').innerHTML = regHtml;
+
+  // History chart
+  drawChart(history);
+}
+
+function renderCl(items){
+  var html = '';
+  for(var i = 0; i < items.length; i++){
+    var item = items[i];
+    var icon = item.status === 'pass' ? '\u2713' : item.status === 'fail' ? '\u2717' : '\u25CB';
+    html += '<div class="cl-item"><div class="cl-dot ' + item.status + '">' + icon + '</div>';
+    html += '<div class="cl-text"><strong>' + esc(item.item) + '</strong>';
+    if(item.status !== 'pass') html += '<br>' + esc(item.fix);
+    html += '</div></div>';
+  }
+  return html;
+}
+
+function regRow(label, value, ok){
+  var cls = ok ? 'reg-val yes' : 'reg-val no';
+  return '<div class="reg-row"><span>' + label + '</span><span class="' + cls + '">' + value + '</span></div>';
+}
+
+function yn(v){ return v ? 'Yes' : 'No'; }
+function esc(s){ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function drawChart(history){
+  var canvas = document.getElementById('history-chart');
+  var ctx = canvas.getContext('2d');
+  var w = canvas.parentElement.offsetWidth;
+  var h = 150;
+  canvas.width = w * 2;
+  canvas.height = h * 2;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(2, 2);
+
+  if(!history.length){
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No history data yet', w/2, h/2);
+    document.getElementById('history-detail').textContent = 'Score history builds over time as checks are performed.';
+    return;
+  }
+
+  var points = history.map(function(h){ return h.trustScore || 0; });
+
+  var dates = history.map(function(h){
+    var d = (h.checkedAt || '').split('T')[0];
+    if(!d) return '';
+    var parts = d.split('-');
+    return parts[1] + '/' + parts[2];
+  });
+
+  var maxY = 100;
+  var pad = {t:10, r:10, b:28, l:30};
+  var cw = w - pad.l - pad.r;
+  var ch = h - pad.t - pad.b;
+
+  // Grid lines + Y axis labels
+  ctx.strokeStyle = '#f3f4f6';
+  ctx.lineWidth = 0.5;
+  for(var y = 0; y <= 100; y += 25){
+    var yy = pad.t + ch - (y / maxY * ch);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, yy);
+    ctx.lineTo(w - pad.r, yy);
+    ctx.stroke();
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '9px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(y, pad.l - 4, yy + 3);
+  }
+
+  // 75 threshold line
+  var ty = pad.t + ch - (75 / maxY * ch);
+  ctx.strokeStyle = '#d1fae5';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(pad.l, ty);
+  ctx.lineTo(w - pad.r, ty);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Threshold label
+  ctx.fillStyle = '#86efac';
+  ctx.font = '8px Inter, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('PROCEED', w - pad.r - 45, ty - 3);
+
+  // Score line
+  ctx.strokeStyle = '#2878b8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(var i = 0; i < points.length; i++){
+    var x = pad.l + (i / Math.max(points.length - 1, 1)) * cw;
+    var yp = pad.t + ch - (points[i] / maxY * ch);
+    if(i === 0) ctx.moveTo(x, yp);
+    else ctx.lineTo(x, yp);
+  }
+  ctx.stroke();
+
+  // Dots + score labels
+  ctx.fillStyle = '#2878b8';
+  for(var i = 0; i < points.length; i++){
+    var x = pad.l + (i / Math.max(points.length - 1, 1)) * cw;
+    var yp = pad.t + ch - (points[i] / maxY * ch);
+    ctx.beginPath();
+    ctx.arc(x, yp, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Score value above dot (only show if few points or every Nth)
+    if(points.length <= 15 || i % Math.ceil(points.length / 10) === 0 || i === points.length - 1){
+      ctx.fillStyle = '#1f2937';
+      ctx.font = '9px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(points[i], x, yp - 7);
+      ctx.fillStyle = '#2878b8';
+    }
+  }
+
+  // X axis date labels (skip duplicates)
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  var labelInterval = Math.max(1, Math.ceil(dates.length / 8));
+  var lastLabel = '';
+  for(var i = 0; i < dates.length; i++){
+    if(i === 0 || i === dates.length - 1 || (dates.length > 2 && i % labelInterval === 0)){
+      var lbl = dates[i];
+      if(lbl === lastLabel && i !== 0) continue;
+      lastLabel = lbl;
+      var x = pad.l + (i / Math.max(dates.length - 1, 1)) * cw;
+      ctx.fillText(lbl, x, h - 6);
+    }
+  }
+
+
+  document.getElementById('history-detail').textContent =
+    points.length + ' check' + (points.length !== 1 ? 's' : '') + ' recorded. Dotted line = PROCEED threshold (75).';
+}
+
+})();
+</script>
+
+</body>
+</html>

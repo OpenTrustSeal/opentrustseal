@@ -1,0 +1,32 @@
+[Unit]
+Description=OpenTrustToken Crawler Fetch Service
+After=network.target
+
+[Service]
+Type=simple
+User=ott
+Group=ott
+WorkingDirectory=/opt/ott-crawler
+EnvironmentFile=/etc/opentrusttoken/crawler.env
+ExecStart=/opt/ott-crawler/venv/bin/uvicorn fetch_service:app --host 10.120.0.3 --port 8901 --workers 1
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Chromium is a memory-hungry beast; cap it so a runaway page can't OOM the
+# whole box. 768M leaves enough for the service itself and kernel + ufw.
+MemoryHigh=640M
+MemoryMax=768M
+
+# Hardening: the service only needs its working dir and chromium cache
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/ott-crawler /home/ott/.cache/ms-playwright /tmp
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

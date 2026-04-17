@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTrustToken - Independent trust attestation for agentic commerce</title>
+<meta name="description" content="The independent trust attestation layer for AI agent payments. Signed evidence bundles, longitudinal trust profiles, compositional brand anchors. Free site audit or one API call before any transaction.">
+<link rel="icon" type="image/png" href="/ottlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy:#0f1f30;--navy-light:#162a40;--navy-dark:#0a1520;
+--blue:#2878b8;--blue-light:#3a9ad9;--blue-dark:#1d5f94;
+--green:#27ae60;--green-light:#2ecc71;
+--white:#ffffff;--off-white:#f7f8fa;--warm-gray:#f0f2f5;
+--text:#1f2937;--text-light:#4b5563;--text-dim:#9ca3af;
+--border:#e5e7eb;--border-light:#f3f4f6;
+--font:'Inter',system-ui,-apple-system,sans-serif;
+--mono:'SF Mono','Cascadia Code','Fira Code',monospace;
+--radius:8px;--radius-lg:12px;
+--shadow:0 1px 3px rgba(0,0,0,0.08);
+--shadow-md:0 4px 12px rgba(0,0,0,0.1);
+--shadow-lg:0 8px 30px rgba(0,0,0,0.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);color:var(--text);background:var(--white);line-height:1.6}
+a{color:var(--blue);text-decoration:none}
+a:hover{color:var(--blue-dark)}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+.skip-link{position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;background:var(--blue);color:#fff;font-weight:600;border-radius:0 0 8px 8px;z-index:1000}
+.skip-link:focus{top:0}
+h1,h2,h3{line-height:1.3;letter-spacing:-0.02em}
+h1{font-size:clamp(1.75rem,4vw,2.75rem);font-weight:800}
+h2{font-size:clamp(1.4rem,3vw,2rem);font-weight:700}
+h3{font-size:1.05rem;font-weight:600}
+.container{max-width:960px;margin:0 auto;padding:0 1.5rem}
+
+/* Nav */
+.nav{padding:0.75rem 0;border-bottom:1px solid var(--border);background:var(--white);position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);background:rgba(255,255,255,0.95)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:960px;margin:0 auto;padding:0 1.5rem}
+.nav-brand{display:flex;align-items:center;gap:0.5rem}
+.nav-brand img{height:32px;width:auto}
+.nav-links{display:flex;gap:1.25rem;align-items:center}
+.nav-links a{color:var(--text-light);font-size:0.875rem;font-weight:500;min-height:44px;display:flex;align-items:center}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:var(--blue);color:#fff !important;padding:0.45rem 1rem;border-radius:6px;font-weight:600;transition:background 0.2s}
+.nav-cta:hover{background:var(--blue-dark);color:#fff !important}
+
+/* Hero */
+.hero{padding:4rem 0 3rem;text-align:center}
+.hero-logo{width:80px;height:auto;margin:0 auto 1.5rem}
+.hero h1{margin-bottom:1rem;color:var(--navy)}
+.hero .subtitle{font-size:clamp(0.95rem,1.8vw,1.1rem);color:var(--text-light);max-width:560px;margin:0 auto 2rem}
+
+/* Checker */
+.checker{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;margin-top:0.5rem}
+.checker-input{display:flex;gap:0.5rem;flex-wrap:wrap}
+.checker-input input{flex:1;min-width:200px;padding:0.7rem 1rem;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--mono);font-size:0.9rem;transition:border 0.2s}
+.checker-input input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,120,184,0.1)}
+.checker-input input::placeholder{color:var(--text-dim)}
+.checker-input button{padding:0.7rem 1.5rem;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-weight:600;cursor:pointer;min-height:44px;font-family:var(--font);font-size:0.9rem;transition:background 0.2s}
+.checker-input button:hover{background:var(--blue-dark)}
+.checker-input button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.checker-input button:disabled{opacity:0.5;cursor:not-allowed}
+
+.loading{display:none;padding:1.5rem 0;color:var(--text-light)}
+.loading.visible{display:block}
+.results{display:none}
+.results.visible{display:block}
+
+/* Score */
+.score-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin:1.5rem 0 0.75rem}
+.score-domain{font-family:var(--mono);font-size:1rem;font-weight:600;color:var(--navy)}
+.score-right{display:flex;align-items:center;gap:0.75rem}
+.score-num{font-size:2rem;font-weight:800;letter-spacing:-0.03em}
+.score-num.proceed{color:var(--green)}
+.score-num.caution{color:#d97706}
+.score-num.deny{color:#dc2626}
+.score-rec{font-size:0.75rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:100px;text-transform:uppercase;letter-spacing:0.03em}
+.score-rec.proceed{background:#d1fae5;color:#065f46}
+.score-rec.caution{background:#fef3c7;color:#92400e}
+.score-rec.deny{background:#fee2e2;color:#991b1b}
+
+.summary-bar{display:flex;gap:1.5rem;margin-bottom:1rem;font-size:0.85rem;color:var(--text-light)}
+.summary-bar span{display:flex;align-items:center;gap:0.35rem}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.pass{background:var(--green)}
+.dot.fail{background:#dc2626}
+.dot.improve{background:#d97706}
+
+/* Checklist */
+.cl-section-title{font-size:0.95rem;font-weight:700;color:var(--navy);margin:1rem 0 0.25rem;padding-bottom:0.25rem;border-bottom:1px solid var(--border)}
+.cl-item{display:flex;align-items:flex-start;gap:0.6rem;padding:0.6rem 0;border-bottom:1px solid var(--border-light)}
+.cl-item:last-child{border-bottom:none}
+.cl-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.cl-icon.pass{background:#d1fae5;color:#065f46}
+.cl-icon.fail{background:#fee2e2;color:#991b1b}
+.cl-icon.improve,.cl-icon.available{background:#fef3c7;color:#92400e}
+.cl-body{flex:1;min-width:0}
+.cl-title{font-weight:600;font-size:0.875rem;color:var(--text);display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap}
+.cl-impact{font-size:0.65rem;padding:0.1rem 0.35rem;border-radius:3px;background:var(--border-light);color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:0.02em}
+.cl-fix{font-size:0.8rem;color:var(--text-light);margin-top:0.2rem;display:none;line-height:1.5}
+.cl-item.show-fix .cl-fix{display:block}
+.cl-toggle{background:none;border:none;color:var(--blue);font-size:0.78rem;cursor:pointer;padding:0;margin-top:0.2rem;font-family:var(--font);font-weight:500}
+.cl-toggle:hover{color:var(--blue-dark)}
+
+/* Sections */
+section{padding:3.5rem 0}
+.section-divider{border-top:1px solid var(--border);margin:0}
+
+/* How it works */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:1.5rem}
+.how-card{padding:1.5rem;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--white)}
+.how-num{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:0.9rem;margin-bottom:0.75rem}
+.how-card p{color:var(--text-light);font-size:0.875rem}
+
+/* Two col */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem}
+.info-card{padding:1.5rem;border:1px solid var(--border);border-radius:var(--radius-lg)}
+.info-card h3{color:var(--navy);margin-bottom:0.5rem}
+.info-card p{color:var(--text-light);font-size:0.9rem}
+
+/* Developer section */
+.dev-section{background:var(--navy);color:#e5e7eb;padding:3.5rem 0}
+.dev-section h2{color:#fff}
+.dev-section p{color:#9ca3af}
+.code-block{background:var(--navy-dark);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius);padding:1.25rem 1.5rem;font-family:var(--mono);font-size:0.82rem;overflow-x:auto;margin:1.25rem 0;line-height:1.7;color:#d1d5db}
+.code-block .kw{color:#93c5fd}
+.code-block .fn{color:#a5b4fc}
+.code-block .str{color:#fbbf24}
+.code-block .comment{color:#6b7280}
+
+/* Footer */
+footer{padding:2.5rem 0;border-top:1px solid var(--border);text-align:center}
+.footer-logo{height:40px;margin:0 auto 0.75rem;display:block}
+footer p{color:var(--text-dim);font-size:0.82rem}
+footer a{color:var(--text-light)}
+
+@media(max-width:768px){
+  .hero{padding:3rem 0 2rem}
+  .how-grid,.two-col{grid-template-columns:1fr}
+  .score-header{flex-direction:column;align-items:flex-start}
+  .summary-bar{flex-wrap:wrap;gap:0.75rem}
+  .nav-links a:not(.nav-cta){display:none}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:0.01ms !important;scroll-behavior:auto !important}}
+@media(prefers-contrast:high){:root{--border:#9ca3af;--text-dim:#6b7280}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav class="nav" aria-label="Main">
+<div class="nav-inner">
+<a href="/" class="nav-brand">
+<img src="/ottlogo.png" alt="OpenTrustToken" height="32">
+</a>
+<div class="nav-links">
+<a href="#how">How It Works</a>
+<a href="/register.html">Register</a>
+<a href="/dashboard.html">Dashboard</a>
+<a href="#developers">Developers</a>
+<a href="https://api.opentrusttoken.com/docs" class="nav-cta">API Docs</a>
+</div>
+</div>
+</nav>
+
+<main id="main">
+
+<header class="hero">
+<div class="container">
+<img src="/ottlogo.png" alt="" class="hero-logo" aria-hidden="true">
+<h1>Independent trust attestation for agentic commerce</h1>
+<p class="subtitle">AI agents are starting to make autonomous payments. They need to know which merchants to trust before they pay. OpenTrustToken answers that question with a signed evidence bundle, a longitudinal trust profile, and a PROCEED / CAUTION / DENY recommendation. Run a free check on any domain, or call the API before your agent transacts.</p>
+</div>
+</header>
+
+<section id="check">
+<div class="container">
+<div class="checker">
+<div class="checker-input">
+<label for="domain-input" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Domain to check</label>
+<input type="text" id="domain-input" placeholder="Enter your domain (e.g. yoursite.com)" autocomplete="off" autocapitalize="none" spellcheck="false">
+<button id="check-btn" type="button">Check my site</button>
+</div>
+<div class="loading" id="loading">Analyzing trust signals...</div>
+<div class="results" id="results">
+<div class="score-header">
+<span class="score-domain" id="r-domain"></span>
+<div class="score-right">
+<span class="score-num" id="r-score"></span>
+<span class="score-rec" id="r-rec"></span>
+</div>
+</div>
+<div class="summary-bar" id="r-summary"></div>
+<p id="r-reasoning" style="color:var(--text-light);font-size:0.875rem;margin-bottom:1.25rem"></p>
+<div id="r-checklist"></div>
+</div>
+</div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<section id="how">
+<div class="container">
+<h2>How it works</h2>
+<p style="color:var(--text-light);max-width:600px">Stripe, Coinbase x402, Visa AP2, and Skyfire are all building the "how agents pay" layer. Nobody has standardized the pre-transaction question: "should this agent pay this specific merchant?" That is the layer OpenTrustToken owns.</p>
+<div class="how-grid">
+<div class="how-card">
+<div class="how-num">1</div>
+<h3>Compositional signals, not guesses</h3>
+<p>Six signal categories run in parallel: domain age, SSL/TLS, DNS security, content analysis, reputation databases, identity verification. Each is evidence from public data. The scoring model is versioned and reproducible from stored raw data.</p>
+</div>
+<div class="how-card">
+<div class="how-num">2</div>
+<h3>Signed evidence bundles, not opaque scores</h3>
+<p>Every response is cryptographically signed with Ed25519. Agents can verify the bundle without trusting us, which is why payment protocols can cite our verdicts without putting us on their critical path. The evidence bundle is the product; the score is a convenience summary over it.</p>
+</div>
+<div class="how-card">
+<div class="how-num">3</div>
+<h3>Compositional brand anchor for established sites</h3>
+<p>Long-term Tranco top-50K + 5+ years of domain age + clean reputation + valid SSL is unfakeable composite evidence of established public trust. Sites meeting all four conditions receive an automatic PROCEED verdict, the same way credit bureaus weight account longevity. Any active safety signal revokes the anchor immediately.</p>
+</div>
+</div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<section>
+<div class="container">
+<h2>Who this is for</h2>
+<div class="two-col">
+<div class="info-card">
+<h3>Site owners and merchants</h3>
+<p>Check your trust score, see a prioritized checklist of specific improvements, and track your score history over time. <a href="/register.html">Register your domain</a> to prove ownership and unlock per-field verification points that automated checks cannot reach. Higher tiers ($29, $99, $499/mo) add business registry cross-referencing, KYC verification, and transaction insurance.</p>
+</div>
+<div class="info-card">
+<h3>Agent developers</h3>
+<p>One API call before your agent pays. Returns a signed evidence bundle with six signal categories, a trust score, a brand tier classification (well_known / scored), a crawlability flag, an actionable checklist, and an Ed25519 signature you can verify without calling us back. Free tier: 60 requests/minute, 10,000 checks/month. Python and TypeScript SDKs available.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section id="developers" class="dev-section">
+<div class="container">
+<h2>For developers</h2>
+<p style="margin-bottom:1rem">Verify any domain before a transaction. Signed with Ed25519 so results cannot be forged. Works today with LangChain, CrewAI, OpenAI tools, and any agent framework that can make an HTTP call.</p>
+<div class="code-block">
+<span class="comment"># Check any domain before your agent pays</span><br>
+<span class="comment"># GET https://api.opentrusttoken.com/v1/check/merchant.com</span><br>
+<br>
+<span class="kw">import</span> httpx<br>
+<br>
+r = httpx.<span class="fn">get</span>(<span class="str">"https://api.opentrusttoken.com/v1/check/chewy.com"</span>)<br>
+data = r.<span class="fn">json</span>()<br>
+<br>
+<span class="comment"># data["trustScore"]       -> 77</span><br>
+<span class="comment"># data["recommendation"]   -> "PROCEED"</span><br>
+<span class="comment"># data["brandTier"]        -> "well_known"</span><br>
+<span class="comment"># data["crawlability"]     -> "ok" or "blocked"</span><br>
+<span class="comment"># data["signals"]          -> 6-category evidence breakdown</span><br>
+<span class="comment"># data["flags"]            -> [WELL_KNOWN_BRAND, ...]</span><br>
+<span class="comment"># data["checklist"]        -> actionable improvements</span><br>
+<span class="comment"># data["signature"]        -> Ed25519 cryptographic proof</span><br>
+<span class="comment"># data["jurisdiction"]     -> country + legal framework + cross-border risk</span><br>
+<br>
+<span class="kw">if</span> data[<span class="str">"recommendation"</span>] == <span class="str">"DENY"</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">"Refusing:"</span>, data[<span class="str">"reasoning"</span>])<br>
+<span class="kw">elif</span> data[<span class="str">"recommendation"</span>] == <span class="str">"CAUTION"</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">confirm_with_user</span>(data[<span class="str">"reasoning"</span>])<br>
+</div>
+<p style="font-size:0.85rem">Free tier: 60 requests/minute, 10,000/month. <a href="https://api.opentrusttoken.com/docs" style="color:#93c5fd">API docs</a> | <a href="/examples/" style="color:#93c5fd">Integration examples</a> | <a href="/marketing/" style="color:#93c5fd">How scoring works</a></p>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="container">
+<img src="/ottlogo.png" alt="OpenTrustToken" class="footer-logo">
+<p>Trust verification for AI agent commerce</p>
+<p style="margin-top:0.5rem"><a href="https://api.opentrusttoken.com/docs">API Docs</a></p>
+</div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+
+var input = document.getElementById('domain-input');
+var btn = document.getElementById('check-btn');
+var loading = document.getElementById('loading');
+var results = document.getElementById('results');
+
+function doCheck(){
+  var domain = input.value.trim().toLowerCase();
+  if(!domain) return;
+  domain = domain.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+  if(!domain) return;
+
+  btn.disabled = true;
+  loading.classList.add('visible');
+  results.classList.remove('visible');
+
+  fetch('https://api.opentrusttoken.com/v1/check/' + encodeURIComponent(domain))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      loading.classList.remove('visible');
+      btn.disabled = false;
+
+      document.getElementById('r-domain').textContent = d.domain;
+      var scoreEl = document.getElementById('r-score');
+      var recEl = document.getElementById('r-rec');
+      scoreEl.textContent = d.trustScore + '/100';
+      recEl.textContent = d.recommendation;
+      var cls = d.recommendation.toLowerCase();
+      scoreEl.className = 'score-num ' + cls;
+      recEl.className = 'score-rec ' + cls;
+
+      document.getElementById('r-reasoning').innerHTML = esc(d.reasoning) +
+        ' <a href="/dashboard.html?domain=' + encodeURIComponent(d.domain) + '" style="margin-left:0.5rem">View full dashboard</a>';
+
+      var cs = d.checklistSummary;
+      document.getElementById('r-summary').innerHTML =
+        '<span><span class="dot pass"></span> ' + cs.passing + ' passing</span>' +
+        '<span><span class="dot fail"></span> ' + cs.failing + ' failing</span>' +
+        '<span><span class="dot improve"></span> ' + cs.improvable + ' to improve</span>';
+
+      // Group checklist by status
+      var failing = d.checklist.filter(function(i){ return i.status === 'fail' || i.status === 'available'; });
+      var improving = d.checklist.filter(function(i){ return i.status === 'improve'; });
+      var passing = d.checklist.filter(function(i){ return i.status === 'pass'; });
+
+      var html = '';
+      if(failing.length){
+        html += '<div class="cl-section-title">Needs attention</div>';
+        html += renderItems(failing);
+      }
+      if(improving.length){
+        html += '<div class="cl-section-title">Recommended improvements</div>';
+        html += renderItems(improving);
+      }
+      if(passing.length){
+        html += '<div class="cl-section-title">Passing</div>';
+        html += renderItems(passing);
+      }
+      document.getElementById('r-checklist').innerHTML = html;
+
+      document.querySelectorAll('.cl-toggle').forEach(function(t){
+        t.addEventListener('click', function(){
+          var item = this.closest('.cl-item');
+          item.classList.toggle('show-fix');
+          this.textContent = item.classList.contains('show-fix') ? 'Hide' : 'How to fix';
+        });
+      });
+
+      results.classList.add('visible');
+    })
+    .catch(function(){
+      loading.classList.remove('visible');
+      btn.disabled = false;
+    });
+}
+
+function renderItems(items){
+  var html = '';
+  for(var i = 0; i < items.length; i++){
+    var item = items[i];
+    var icon = item.status === 'pass' ? '\u2713' : item.status === 'fail' ? '\u2717' : '\u25CB';
+    html += '<div class="cl-item">';
+    html += '<div class="cl-icon ' + item.status + '">' + icon + '</div>';
+    html += '<div class="cl-body">';
+    html += '<div class="cl-title">' + esc(item.item) + ' <span class="cl-impact">' + item.impact + '</span></div>';
+    if(item.status !== 'pass'){
+      if(item.item === 'Registered with OpenTrustToken'){
+        html += '<a href="/register.html" class="cl-toggle" style="display:inline-block;margin-top:0.2rem">Register now (free)</a>';
+      } else {
+        html += '<button class="cl-toggle" type="button">How to fix</button>';
+        html += '<div class="cl-fix">' + esc(item.fix) + '</div>';
+      }
+    }
+    html += '</div></div>';
+  }
+  return html;
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+btn.addEventListener('click', doCheck);
+input.addEventListener('keydown', function(e){ if(e.key === 'Enter') doCheck(); });
+
+})();
+</script>
+
+</body>
+</html>

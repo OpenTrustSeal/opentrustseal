@@ -1,0 +1,17 @@
+{
+  "name": "@opentrusttoken/sdk",
+  "version": "0.1.0",
+  "description": "Trust verification for AI agent commerce",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["ai", "agents", "trust", "verification", "payments"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
