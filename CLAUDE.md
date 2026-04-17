@@ -313,7 +313,7 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 
 ## Corporate Entity
 
-**OpenTrustSeal, Inc.** -- California C-Corp, filed 2026-04-17.
+**OpenTrustSeal, Inc.** -- California C-Corp, filed 2026-04-17. 18575 Gale Ave Ste 278, City of Industry, CA 91748.
 - Domain: opentrustseal.com (Cloudflare DNS, email routing to alu@scosi.com)
 - API: api.opentrustseal.com (SSL via certbot, same VPS as opentrusttoken.com)
 - GitHub: github.com/OpenTrustSeal (org, private repo + public status page)
