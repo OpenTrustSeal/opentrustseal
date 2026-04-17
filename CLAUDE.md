@@ -311,6 +311,15 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 - docs/ARCHITECTURE.md -- v0.2.0 system architecture with MVP section
 - docs/SCORING-AND-KYC.md -- scoring deep dive and KYC monetization model (partially outdated, revenue projections assume KYC in v1)
 
+## Corporate Entity
+
+**OpenTrustSeal, Inc.** -- California C-Corp, filed 2026-04-17.
+- Domain: opentrustseal.com (Cloudflare DNS, email routing to alu@scosi.com)
+- API: api.opentrustseal.com (SSL via certbot, same VPS as opentrusttoken.com)
+- GitHub: github.com/OpenTrustSeal (org, private repo + public status page)
+- Email: alu@opentrustseal.com
+- Rebrand in progress: code rename from opentrusttoken/OTT to opentrustseal/OTS scheduled after 100K seed completes. Both domains serve the same API simultaneously.
+
 ## Investor Positioning (updated 2026-04-13)
 
 The winning framing from the recent outside review: **"independent trust attestation layer for agentic commerce"** rather than "trust score API." The score is a commodity-in-waiting; the accumulated verification graph, longitudinal history, signed evidence bundles, and compositional brand anchor are the moats. The product sells to two sides at once: agent developers get a risk-control API before payment, merchants get a way to increase agent transaction conversion via registration + KYC tiers. The scoring is good enough for the pitch; the dataset and distribution are what's missing next.
