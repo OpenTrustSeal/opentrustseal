@@ -1,7 +1,7 @@
-"""CrewAI tool integration for OpenTrustToken.
+"""CrewAI tool integration for OpenTrustSeal.
 
 Usage:
-    from opentrusttoken.integrations.crewai import OTTVerifyTool
+    from opentrustseal.integrations.crewai import OTTVerifyTool
 
     agent = Agent(
         role="Purchasing Agent",
@@ -14,7 +14,7 @@ try:
 except ImportError:
     raise ImportError(
         "crewai is required for CrewAI integration. "
-        "Install with: pip install opentrusttoken[crewai]"
+        "Install with: pip install opentrustseal[crewai]"
     )
 
 from typing import Optional
@@ -32,7 +32,7 @@ class OTTVerifyTool(BaseTool):
     )
 
     api_key: Optional[str] = None
-    base_url: str = "https://api.opentrusttoken.com"
+    base_url: str = "https://api.opentrustseal.com"
 
     def _run(self, domain: str) -> str:
         client = OTTClient(api_key=self.api_key, base_url=self.base_url)

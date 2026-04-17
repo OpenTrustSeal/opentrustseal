@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# OpenTrustToken VPS Setup Script
+# OpenTrustSeal VPS Setup Script
 # Target: Ubuntu 24.04 LTS, 2GB RAM minimum
 # Run as root: bash setup-vps.sh
 #
 # Prerequisites:
-#   - DNS: api.opentrusttoken.com -> VPS IP
+#   - DNS: api.opentrustseal.com -> VPS IP
 #   - Fresh Ubuntu 24.04 install
 
 set -euo pipefail
 
-DOMAIN="api.opentrusttoken.com"
+DOMAIN="api.opentrustseal.com"
 APP_USER="ott"
-APP_DIR="/opt/opentrusttoken"
+APP_DIR="/opt/opentrustseal"
 VENV_DIR="$APP_DIR/venv"
 
-echo "=== OpenTrustToken VPS Setup ==="
+echo "=== OpenTrustSeal VPS Setup ==="
 
 # 1. System updates
 echo "[1/8] Updating system..."
@@ -35,9 +35,9 @@ echo "[4/8] Setting up application..."
 mkdir -p "$APP_DIR"/{data,keys,logs}
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
-# Copy server code (assumes you've rsync'd it to /tmp/ott-server/)
-if [ -d /tmp/ott-server ]; then
-    cp -r /tmp/ott-server/* "$APP_DIR/"
+# Copy server code (assumes you've rsync'd it to /tmp/ots-server/)
+if [ -d /tmp/ots-server ]; then
+    cp -r /tmp/ots-server/* "$APP_DIR/"
     chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 fi
 
@@ -50,7 +50,7 @@ sudo -u "$APP_USER" "$VENV_DIR/bin/pip" install -q \
 
 # 6. Configure nginx
 echo "[6/8] Configuring nginx..."
-cat > /etc/nginx/sites-available/opentrusttoken <<NGINX
+cat > /etc/nginx/sites-available/opentrustseal <<NGINX
 server {
     listen 80;
     server_name $DOMAIN;
@@ -67,15 +67,15 @@ server {
 }
 NGINX
 
-ln -sf /etc/nginx/sites-available/opentrusttoken /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/opentrustseal /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
 # 7. Create systemd service
 echo "[7/8] Creating systemd service..."
-cat > /etc/systemd/system/opentrusttoken.service <<SERVICE
+cat > /etc/systemd/system/opentrustseal.service <<SERVICE
 [Unit]
-Description=OpenTrustToken API Server
+Description=OpenTrustSeal API Server
 After=network.target
 
 [Service]
@@ -83,8 +83,8 @@ Type=simple
 User=$APP_USER
 Group=$APP_USER
 WorkingDirectory=$APP_DIR
-Environment=OTT_KEY_DIR=$APP_DIR/keys
-Environment=OTT_DB_PATH=$APP_DIR/data/ott.db
+Environment=OTS_KEY_DIR=$APP_DIR/keys
+Environment=OTS_DB_PATH=$APP_DIR/data/ots.db
 ExecStart=$VENV_DIR/bin/uvicorn app.main:app --host 127.0.0.1 --port 8900 --workers 2
 Restart=always
 RestartSec=5
@@ -101,12 +101,12 @@ WantedBy=multi-user.target
 SERVICE
 
 systemctl daemon-reload
-systemctl enable opentrusttoken
-systemctl start opentrusttoken
+systemctl enable opentrustseal
+systemctl start opentrustseal
 
 # 8. SSL certificate
 echo "[8/8] Setting up SSL..."
-certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email admin@opentrusttoken.com --redirect || {
+certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email admin@opentrustseal.com --redirect || {
     echo "Certbot failed. Make sure DNS is pointed to this server."
     echo "Run manually: certbot --nginx -d $DOMAIN"
 }
@@ -124,5 +124,5 @@ echo "Docs:   https://$DOMAIN/docs"
 echo "Health: https://$DOMAIN/health"
 echo ""
 echo "To deploy updates:"
-echo "  rsync -avz server/ root@VPS_IP:/tmp/ott-server/"
-echo "  ssh root@VPS_IP 'cp -r /tmp/ott-server/* /opt/opentrusttoken/ && systemctl restart opentrusttoken'"
+echo "  rsync -avz server/ root@VPS_IP:/tmp/ots-server/"
+echo "  ssh root@VPS_IP 'cp -r /tmp/ots-server/* /opt/opentrustseal/ && systemctl restart opentrustseal'"

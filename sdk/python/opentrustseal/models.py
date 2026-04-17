@@ -1,4 +1,4 @@
-"""Response models for the OpenTrustToken SDK."""
+"""Response models for the OpenTrustSeal SDK."""
 
 from dataclasses import dataclass, field
 from typing import Optional

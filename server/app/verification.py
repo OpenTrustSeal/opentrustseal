@@ -20,13 +20,13 @@ from .models.registration import REGISTRATION_SCORE_MAP
 
 def generate_verification_code() -> str:
     """Generate a random verification code."""
-    return f"ott-verify-{secrets.token_hex(16)}"
+    return f"ots-verify-{secrets.token_hex(16)}"
 
 
 async def check_dns_verification(domain: str, expected_code: str) -> bool:
     """Check if the DNS TXT record contains our verification code."""
     try:
-        answers = dns.resolver.resolve(f"_ott-verify.{domain}", "TXT")
+        answers = dns.resolver.resolve(f"_ots-verify.{domain}", "TXT")
         for rdata in answers:
             txt = rdata.to_text().strip('"')
             if expected_code in txt:
@@ -40,7 +40,7 @@ async def check_http_verification(domain: str, expected_code: str) -> bool:
     """Check if the HTTP verification file exists with the correct code."""
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True, verify=False) as client:
-            resp = await client.get(f"https://{domain}/.well-known/ott-verify.txt")
+            resp = await client.get(f"https://{domain}/.well-known/ots-verify.txt")
             if resp.status_code == 200 and expected_code in resp.text:
                 return True
     except Exception:
@@ -248,7 +248,7 @@ def _get_instructions(domain: str, code: str, method: str) -> dict:
             "method": "dns",
             "steps": [
                 f"Add a TXT record to your DNS",
-                f"Name: _ott-verify.{domain}",
+                f"Name: _ots-verify.{domain}",
                 f"Type: TXT",
                 f"Value: {code}",
                 "Wait a few minutes for DNS propagation, then try again",
@@ -258,7 +258,7 @@ def _get_instructions(domain: str, code: str, method: str) -> dict:
         return {
             "method": "http",
             "steps": [
-                f"Create a file at: https://{domain}/.well-known/ott-verify.txt",
+                f"Create a file at: https://{domain}/.well-known/ots-verify.txt",
                 f"Contents: {code}",
                 "Make sure it is accessible over HTTPS, then try again",
             ],

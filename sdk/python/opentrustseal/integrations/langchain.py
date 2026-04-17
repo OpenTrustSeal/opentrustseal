@@ -1,7 +1,7 @@
-"""LangChain / LangGraph tool integration for OpenTrustToken.
+"""LangChain / LangGraph tool integration for OpenTrustSeal.
 
 Usage:
-    from opentrusttoken.integrations.langchain import OTTVerifyTool
+    from opentrustseal.integrations.langchain import OTTVerifyTool
 
     tools = [OTTVerifyTool()]
     agent = create_react_agent(llm, tools)
@@ -15,7 +15,7 @@ try:
 except ImportError:
     raise ImportError(
         "langchain-core is required for LangChain integration. "
-        "Install with: pip install opentrusttoken[langchain]"
+        "Install with: pip install opentrustseal[langchain]"
     )
 
 from typing import Optional
@@ -38,7 +38,7 @@ class OTTVerifyTool(BaseTool):
     )
 
     api_key: Optional[str] = None
-    base_url: str = "https://api.opentrusttoken.com"
+    base_url: str = "https://api.opentrustseal.com"
 
     def _run(self, domain: str) -> str:
         client = OTTClient(api_key=self.api_key, base_url=self.base_url)

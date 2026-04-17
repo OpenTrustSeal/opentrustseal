@@ -142,7 +142,7 @@ async def get_status(domain: str, _rl=Depends(_rate_limit)):
             status_code=404,
             detail={
                 "error": "NOT_REGISTERED",
-                "message": f"{domain} is not registered with OpenTrustToken",
+                "message": f"{domain} is not registered with OpenTrustSeal",
                 "suggestion": "Register at POST /v1/register",
             },
         )

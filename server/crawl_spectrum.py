@@ -32,7 +32,7 @@ def load_tranco(n_samples_per_tier: int = 50) -> list[str]:
     from pathlib import Path
     import csv
 
-    data_dir = Path(os.environ.get("OTT_DATA_DIR", "./data"))
+    data_dir = Path(os.environ.get("OTS_DATA_DIR", "./data"))
     tranco_file = data_dir / "tranco.csv"
 
     if not tranco_file.exists():
@@ -122,7 +122,7 @@ async def main():
     ensure_keys()
 
     # 1. Get existing domains to re-crawl
-    db_path = os.environ.get("OTT_DB_PATH", "./data/ott.db")
+    db_path = os.environ.get("OTS_DB_PATH", "./data/ots.db")
     conn = sqlite3.connect(db_path)
     existing = [row[0] for row in conn.execute("SELECT domain FROM domains").fetchall()]
     conn.close()
@@ -204,7 +204,7 @@ async def main():
         print(f"  {country:10s}: {len(scores):4d} domains, avg score {avg:.1f}")
 
     # Save results
-    with open(os.environ.get("OTT_DATA_DIR", "./data") + "/spectrum-results.json", "w") as f:
+    with open(os.environ.get("OTS_DATA_DIR", "./data") + "/spectrum-results.json", "w") as f:
         json.dump(results, f, indent=2)
     print(f"\nResults saved to data/spectrum-results.json")
 

@@ -1,19 +1,19 @@
-"""OpenTrustToken SDK - Trust verification for AI agent commerce.
+"""OpenTrustSeal SDK - Trust verification for AI agent commerce.
 
 Quick start:
-    from opentrusttoken import check
+    from opentrustseal import check
 
     result = check("merchant.com")
     if result.recommendation == "DENY":
         raise Exception(result.reasoning)
 
 Async:
-    from opentrusttoken import async_check
+    from opentrustseal import async_check
 
     result = await async_check("merchant.com")
 
 Full client:
-    from opentrusttoken import OTTClient
+    from opentrustseal import OTTClient
 
     client = OTTClient(api_key="ott_...")  # optional, free tier needs no key
     result = client.check("merchant.com")

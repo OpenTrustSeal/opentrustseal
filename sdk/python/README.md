@@ -1,17 +1,17 @@
-# OpenTrustToken Python SDK
+# OpenTrustSeal Python SDK
 
 Trust verification for AI agent commerce. One call to check if a site is safe to transact with.
 
 ## Install
 
 ```bash
-pip install opentrusttoken
+pip install opentrustseal
 ```
 
 ## Quick Start
 
 ```python
-from opentrusttoken import check
+from opentrustseal import check
 
 result = check("merchant.com")
 
@@ -56,13 +56,13 @@ for item in result.checklist:
 
 # Cryptographic proof
 result.signature  # "z3FXQ..." (Ed25519)
-result.issuer     # "did:web:opentrusttoken.com"
+result.issuer     # "did:web:opentrustseal.com"
 ```
 
 ## Async
 
 ```python
-from opentrusttoken import async_check
+from opentrustseal import async_check
 
 result = await async_check("merchant.com")
 ```
@@ -70,7 +70,7 @@ result = await async_check("merchant.com")
 ## With API Key
 
 ```python
-from opentrusttoken import OTTClient
+from opentrustseal import OTTClient
 
 client = OTTClient(api_key="ott_live_...")
 result = client.check("merchant.com")
@@ -79,7 +79,7 @@ result = client.check("merchant.com")
 ## Check Multiple Domains
 
 ```python
-from opentrusttoken import OTTClient
+from opentrustseal import OTTClient
 
 client = OTTClient()
 results = client.check_multiple(["site-a.com", "site-b.com", "site-c.com"])
@@ -90,11 +90,11 @@ for r in results:
 ## LangChain Integration
 
 ```bash
-pip install opentrusttoken[langchain]
+pip install opentrustseal[langchain]
 ```
 
 ```python
-from opentrusttoken.integrations.langchain import OTTVerifyTool
+from opentrustseal.integrations.langchain import OTTVerifyTool
 
 tools = [OTTVerifyTool()]
 agent = create_react_agent(llm, tools)
@@ -105,11 +105,11 @@ agent = create_react_agent(llm, tools)
 ## CrewAI Integration
 
 ```bash
-pip install opentrusttoken[crewai]
+pip install opentrustseal[crewai]
 ```
 
 ```python
-from opentrusttoken.integrations.crewai import OTTVerifyTool
+from opentrustseal.integrations.crewai import OTTVerifyTool
 
 agent = Agent(
     role="Purchasing Agent",
@@ -120,12 +120,12 @@ agent = Agent(
 ## Raw HTTP (No SDK)
 
 ```bash
-curl https://api.opentrusttoken.com/v1/check/merchant.com
+curl https://api.opentrustseal.com/v1/check/merchant.com
 ```
 
 Works from any language. The SDK is a convenience wrapper around this endpoint.
 
 ## Links
 
-- [API Documentation](https://api.opentrusttoken.com/docs)
-- [OpenTrustToken](https://opentrusttoken.com)
+- [API Documentation](https://api.opentrustseal.com/docs)
+- [OpenTrustSeal](https://opentrustseal.com)

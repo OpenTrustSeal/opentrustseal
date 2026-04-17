@@ -1,4 +1,4 @@
-# OpenTrustToken Integration Examples
+# OpenTrustSeal Integration Examples
 
 ## Setup
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Upload files to a cPanel server via its API.
 
-Reads credentials from ~/.config/opentrusttoken/credentials.
+Reads credentials from ~/.config/opentrustseal/credentials.
 Usage: python3 cpanel-upload.py <profile> <local_file> <remote_path>
        python3 cpanel-upload.py scosi /tmp/scosi-fixes/robots.txt /public_html/robots.txt
        python3 cpanel-upload.py scosi --batch /tmp/scosi-fixes/batch.json
@@ -17,7 +17,7 @@ import ssl
 
 
 def load_credentials(profile: str) -> dict:
-    cred_file = os.path.expanduser("~/.config/opentrusttoken/credentials")
+    cred_file = os.path.expanduser("~/.config/opentrustseal/credentials")
     creds = {}
     with open(cred_file) as f:
         for line in f:

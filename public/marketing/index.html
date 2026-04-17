@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenTrustToken - How It Works (scoring v1.3)</title>
-<link rel="icon" type="image/png" href="/ottlogo.png">
+<title>OpenTrustSeal - How It Works (scoring v1.3)</title>
+<link rel="icon" type="image/png" href="/otslogo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -112,7 +112,7 @@ footer img{height:36px;margin:0 auto 0.5rem;display:block}
 
 <nav class="nav">
 <div class="nav-inner">
-<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<a href="/" class="nav-brand"><img src="/otslogo.png" alt="OpenTrustSeal"></a>
 <div class="nav-links">
 <a href="#architecture">Architecture</a>
 <a href="#scoring">Scoring</a>
@@ -127,7 +127,7 @@ footer img{height:36px;margin:0 auto 0.5rem;display:block}
 
 <header class="hero">
 <div class="container">
-<h1>OpenTrustToken: Structural Overview</h1>
+<h1>OpenTrustSeal: Structural Overview</h1>
 <p>The independent trust attestation layer for AI agent commerce. How it works, how scoring is built, how the fetch escalation ladder reaches sites that block our datacenter IPs, and where the compositional brand anchor, KYC infrastructure, and longitudinal trust graph fit into the architecture.</p>
 </div>
 </header>
@@ -138,7 +138,7 @@ footer img{height:36px;margin:0 auto 0.5rem;display:block}
 <p class="label">The Problem</p>
 <h2>AI agents can pay. They have no way to know who to trust.</h2>
 <p>Stripe's Machine Payments Protocol, Coinbase x402, Visa's AP2 framework, and Skyfire KYAPay are building payment rails for AI agents. These handle "how agents pay." Nobody has standardized the pre-transaction question: "should this agent pay this specific site?"</p>
-<p style="margin-top:0.75rem">OpenTrustToken answers that question. One API call returns a cryptographically signed evidence bundle with a trust score, a brand tier classification, a crawlability flag, and a PROCEED / CAUTION / DENY recommendation. The evidence bundle is the product. Payment protocols can cite our verdicts without putting us on their critical path, because the Ed25519 signature lets anyone verify a token without calling our API.</p>
+<p style="margin-top:0.75rem">OpenTrustSeal answers that question. One API call returns a cryptographically signed evidence bundle with a trust score, a brand tier classification, a crawlability flag, and a PROCEED / CAUTION / DENY recommendation. The evidence bundle is the product. Payment protocols can cite our verdicts without putting us on their critical path, because the Ed25519 signature lets anyone verify a token without calling our API.</p>
 
 <div class="card-grid" style="margin-top:1.5rem">
 <div class="card">
@@ -222,7 +222,7 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <div class="container">
 <p class="label">Scoring Model</p>
 <h2>How trust scores are computed</h2>
-<p style="color:var(--text-light);margin-bottom:1rem">The score is a weighted average of six signal categories, with two anchors layered on top: <strong>content re-weighting</strong> when we cannot reach the homepage (content's 17% is dropped and the remaining five signals renormalize to sum to 100%), and the <strong>well-known brand anchor</strong> for unambiguously established sites. The model is versioned (current: <code style="font-family:var(--mono);font-size:0.85rem">ott-v1.3-weights</code>) and can be updated without re-crawling because raw signals are stored separately from scored results.</p>
+<p style="color:var(--text-light);margin-bottom:1rem">The score is a weighted average of six signal categories, with two anchors layered on top: <strong>content re-weighting</strong> when we cannot reach the homepage (content's 17% is dropped and the remaining five signals renormalize to sum to 100%), and the <strong>well-known brand anchor</strong> for unambiguously established sites. The model is versioned (current: <code style="font-family:var(--mono);font-size:0.85rem">ots-v1.3-weights</code>) and can be updated without re-crawling because raw signals are stored separately from scored results.</p>
 
 <div class="table-wrap">
 <table>
@@ -285,7 +285,7 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 </ul>
 </div>
 
-<p style="color:var(--text-light);font-size:0.9rem;margin-top:0.75rem">The anchor addresses a credibility problem the automated layer cannot solve on its own. When content fetch is blocked by a merchant's bot protection (Cloudflare Bot Management, Akamai, PerimeterX), identity signals that transitively depend on content (contact on site, schema.org markup, presence of an <code style="font-family:var(--mono);font-size:0.85rem">ott.json</code> file) are all unavailable. Without the anchor, a crateandbarrel or petco would score CAUTION despite being unambiguously established brands. The anchor encodes the missing evidence explicitly rather than hand-curating a whitelist of "known good" domains.</p>
+<p style="color:var(--text-light);font-size:0.9rem;margin-top:0.75rem">The anchor addresses a credibility problem the automated layer cannot solve on its own. When content fetch is blocked by a merchant's bot protection (Cloudflare Bot Management, Akamai, PerimeterX), identity signals that transitively depend on content (contact on site, schema.org markup, presence of an <code style="font-family:var(--mono);font-size:0.85rem">ots.json</code> file) are all unavailable. Without the anchor, a crateandbarrel or petco would score CAUTION despite being unambiguously established brands. The anchor encodes the missing evidence explicitly rather than hand-curating a whitelist of "known good" domains.</p>
 
 <h3 style="margin-top:1.5rem">Content re-weighting when the homepage is unreachable</h3>
 <p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem">Some major retailers block automated crawlers at the network level. When our fetch ladder exhausts all tiers and cannot retrieve the homepage, we do NOT score content as 0 (that would conflate "we couldn't look" with "the site has no content"). Instead, we drop content's 17% weight from the sum and renormalize the remaining five signals to 100%. The response carries <code style="font-family:var(--mono);font-size:0.85rem">crawlability: "blocked"</code> and the <code style="font-family:var(--mono);font-size:0.85rem">CONTENT_UNSCORABLE</code> flag so consumers know why the score was computed from fewer signals.</p>
@@ -625,7 +625,7 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <tr><td><strong>Reputation pipeline</strong></td><td style="color:var(--green)">Live</td><td>Tranco + Safe Browsing + Spamhaus + SURBL + URLhaus</td></tr>
 <tr><td><strong>International scoring</strong></td><td style="color:var(--green)">Live</td><td>12+ languages, GDPR WHOIS awareness, ccTLD bonuses, jurisdiction detection</td></tr>
 <tr><td><strong>Category detection</strong></td><td style="color:var(--green)">Live</td><td>Auto-detect infrastructure vs consumer, category-adjusted scoring</td></tr>
-<tr><td><strong>Landing page + free checker</strong></td><td style="color:var(--green)">Live</td><td>Public domain checker at opentrusttoken.com</td></tr>
+<tr><td><strong>Landing page + free checker</strong></td><td style="color:var(--green)">Live</td><td>Public domain checker at opentrustseal.com</td></tr>
 <tr><td><strong>Domain registration flow</strong></td><td style="color:var(--green)">Live</td><td>Structured data collection, per-field verification scoring (max +30), DNS/HTTP domain proof, public/private separation, cross-referencing against WHOIS and SSL cert org</td></tr>
 <tr><td><strong>Site owner dashboard</strong></td><td style="color:var(--green)">Live</td><td>Score hero, signal breakdown bars, jurisdiction profile, grouped checklist, registration status with per-field verification, score history chart with PROCEED threshold line</td></tr>
 <tr><td><strong>Python + TypeScript SDKs</strong></td><td style="color:var(--green)">Built</td><td>sync/async clients, LangChain and CrewAI tool wrappers. Not yet published to PyPI / npm.</td></tr>
@@ -667,7 +667,7 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 
 <div class="card">
 <h4>DID (Decentralized Identifier)</h4>
-<p style="font-size:0.875rem;color:var(--text-light)">Our digital identity is <code style="font-family:var(--mono);font-size:0.85rem">did:web:opentrusttoken.com</code>. This is a W3C standard for creating digital identities that don't depend on any single authority. Our DID document (at /.well-known/did.json) contains our public signing key. Any agent worldwide can look up our DID, find our public key, and verify our tokens without any prior relationship with us.</p>
+<p style="font-size:0.875rem;color:var(--text-light)">Our digital identity is <code style="font-family:var(--mono);font-size:0.85rem">did:web:opentrustseal.com</code>. This is a W3C standard for creating digital identities that don't depend on any single authority. Our DID document (at /.well-known/did.json) contains our public signing key. Any agent worldwide can look up our DID, find our public key, and verify our tokens without any prior relationship with us.</p>
 </div>
 
 <div class="card">
@@ -686,9 +686,9 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 
 <footer>
 <div class="container">
-<img src="/ottlogo.png" alt="OpenTrustToken">
+<img src="/otslogo.png" alt="OpenTrustSeal">
 <p>Trust verification for AI agent commerce</p>
-<p style="margin-top:0.25rem"><a href="https://opentrusttoken.com" style="color:var(--text-dim)">opentrusttoken.com</a> | <a href="https://api.opentrusttoken.com/docs" style="color:var(--text-dim)">API Docs</a></p>
+<p style="margin-top:0.25rem"><a href="https://opentrustseal.com" style="color:var(--text-dim)">opentrustseal.com</a> | <a href="https://api.opentrustseal.com/docs" style="color:var(--text-dim)">API Docs</a></p>
 </div>
 </footer>
 

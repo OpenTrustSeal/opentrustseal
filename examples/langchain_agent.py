@@ -5,7 +5,7 @@ before making purchases. The agent decides on its own when to
 call the trust verification tool.
 
 Requirements:
-    pip install langchain-openai opentrusttoken
+    pip install langchain-openai opentrustseal
 
 Set your OpenAI API key:
     export OPENAI_API_KEY=sk-...
@@ -27,7 +27,7 @@ if not os.environ.get("OPENAI_API_KEY"):
 else:
     SIMULATION = False
 
-from opentrusttoken import check
+from opentrustseal import check
 
 
 def simulate_agent():
@@ -119,7 +119,7 @@ def run_real_agent():
         from langchain_openai import ChatOpenAI
         from langchain.agents import create_react_agent, AgentExecutor
         from langchain_core.prompts import PromptTemplate
-        from opentrusttoken.integrations.langchain import OTTVerifyTool
+        from opentrustseal.integrations.langchain import OTTVerifyTool
     except ImportError as e:
         print(f"Missing dependency: {e}")
         print("Install with: pip install langchain-openai langchain")

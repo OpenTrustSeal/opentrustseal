@@ -9,9 +9,9 @@ Usage:
     python3 export_dataset.py --format both      # Both (default)
 
 Outputs:
-    ott-trust-dataset-YYYY-MM-DD.csv
-    ott-trust-dataset-YYYY-MM-DD.json
-    ott-trust-dataset-YYYY-MM-DD.sha256
+    ots-trust-dataset-YYYY-MM-DD.csv
+    ots-trust-dataset-YYYY-MM-DD.json
+    ots-trust-dataset-YYYY-MM-DD.sha256
 
 The dataset includes every scored domain with its trust score, signal
 breakdown, recommendation, brand tier, crawlability status, and scoring
@@ -20,7 +20,7 @@ individual lookups). The SHA-256 manifest covers all output files so
 downloaders can verify integrity.
 
 Intended for publication on Hugging Face, GitHub Releases, or direct
-download from opentrusttoken.com/data/.
+download from opentrustseal.com/data/.
 """
 
 import csv
@@ -32,7 +32,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path(os.environ.get("OTT_DB_PATH", "./data/ott.db"))
+DB_PATH = Path(os.environ.get("OTS_DB_PATH", "./data/ots.db"))
 
 
 def load_scored_results(db_path: Path) -> list[dict]:
@@ -153,7 +153,7 @@ def main():
 
     out_dir.mkdir(parents=True, exist_ok=True)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    base = f"ott-trust-dataset-{today}"
+    base = f"ots-trust-dataset-{today}"
 
     print(f"Exporting from {DB_PATH}...")
     results = load_scored_results(DB_PATH)
@@ -168,19 +168,19 @@ def main():
     deny = sum(1 for r in results if r["recommendation"] == "DENY")
 
     meta = {
-        "name": "OpenTrustToken Trust Dataset",
+        "name": "OpenTrustSeal Trust Dataset",
         "description": "Trust scores and signal data for web domains, "
-                       "produced by the OpenTrustToken independent trust "
-                       "attestation API (api.opentrusttoken.com).",
+                       "produced by the OpenTrustSeal independent trust "
+                       "attestation API (api.opentrustseal.com).",
         "version": today,
         "totalDomains": len(results),
         "scoringModel": results[0]["scoringModel"] if results else "unknown",
         "scoreRange": {"min": min(scores), "max": max(scores), "mean": round(sum(scores) / len(scores), 1)},
         "distribution": {"PROCEED": proceed, "CAUTION": caution, "DENY": deny},
         "exportedAt": datetime.now(timezone.utc).isoformat() + "Z",
-        "source": "https://api.opentrusttoken.com",
+        "source": "https://api.opentrustseal.com",
         "license": "CC-BY-4.0",
-        "methodology": "https://opentrusttoken.com/docs/methodology",
+        "methodology": "https://opentrustseal.com/docs/methodology",
     }
 
     files_written = []

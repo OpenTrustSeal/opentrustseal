@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Integration Examples - OpenTrustToken</title>
-<link rel="icon" type="image/png" href="/ottlogo.png">
+<title>Integration Examples - OpenTrustSeal</title>
+<link rel="icon" type="image/png" href="/otslogo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -86,11 +86,11 @@ footer img{height:32px;margin:0 auto 0.5rem;display:block}
 
 <nav class="nav">
 <div class="nav-inner">
-<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<a href="/" class="nav-brand"><img src="/otslogo.png" alt="OpenTrustSeal"></a>
 <div class="nav-links">
 <a href="/">Home</a>
 <a href="/dashboard.html">Dashboard</a>
-<a href="https://api.opentrusttoken.com/docs">API Docs</a>
+<a href="https://api.opentrustseal.com/docs">API Docs</a>
 </div>
 </div>
 </nav>
@@ -99,12 +99,12 @@ footer img{height:32px;margin:0 auto 0.5rem;display:block}
 <div class="container">
 
 <h1>Integration Examples</h1>
-<p class="subtitle">Working code showing how to integrate OpenTrustToken into AI agents, payment flows, and applications.</p>
+<p class="subtitle">Working code showing how to integrate OpenTrustSeal into AI agents, payment flows, and applications.</p>
 
 <div class="install">
 <h3>Setup</h3>
 <p style="font-size:0.9rem;color:var(--text-light)">Python SDK: <code>pip install httpx</code> (SDK is included in examples, will be on PyPI at launch)</p>
-<p style="font-size:0.9rem;color:var(--text-light);margin-top:0.25rem">Or just use the API directly: <code>GET https://api.opentrusttoken.com/v1/check/{domain}</code></p>
+<p style="font-size:0.9rem;color:var(--text-light);margin-top:0.25rem">Or just use the API directly: <code>GET https://api.opentrustseal.com/v1/check/{domain}</code></p>
 </div>
 
 <!-- Example 1 -->
@@ -117,7 +117,7 @@ footer img{height:32px;margin:0 auto 0.5rem;display:block}
 <p>The simplest integration. Check a domain before making a payment. Act on the recommendation.</p>
 
 <div class="code">
-<span class="kw">from</span> opentrusttoken <span class="kw">import</span> check<br>
+<span class="kw">from</span> opentrustseal <span class="kw">import</span> check<br>
 <br>
 result = check(<span class="str">"stripe.com"</span>)<br>
 <br>
@@ -181,7 +181,7 @@ Flags:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NO_IDENTITY, NO_SSL
 
 <div class="code">
 <span class="kw">from</span> langchain_openai <span class="kw">import</span> ChatOpenAI<br>
-<span class="kw">from</span> opentrusttoken.integrations.langchain <span class="kw">import</span> OTTVerifyTool<br>
+<span class="kw">from</span> opentrustseal.integrations.langchain <span class="kw">import</span> OTTVerifyTool<br>
 <br>
 <span class="comment"># Add the trust verification tool to your agent</span><br>
 llm = ChatOpenAI(model=<span class="str">"gpt-4o"</span>)<br>
@@ -229,7 +229,7 @@ Agent: Amount $12.99 is within my CAUTION limit.<br>
 <p>Agent compares prices across multiple merchants, filters out untrustworthy ones, and recommends the best deal among verified options. The cheapest option ($9.99) gets rejected because it fails trust verification.</p>
 
 <div class="code">
-<span class="kw">from</span> opentrusttoken <span class="kw">import</span> OTTClient<br>
+<span class="kw">from</span> opentrustseal <span class="kw">import</span> OTTClient<br>
 <br>
 client = OTTClient()<br>
 merchants = [<span class="str">"amazon.com"</span>, <span class="str">"ebay.com"</span>, <span class="str">"scosi.com"</span>,<br>
@@ -275,7 +275,7 @@ bestbuy.com&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nb
 
 <div class="code">
 <span class="kw">import</span> asyncio<br>
-<span class="kw">from</span> opentrusttoken <span class="kw">import</span> OTTClient<br>
+<span class="kw">from</span> opentrustseal <span class="kw">import</span> OTTClient<br>
 <br>
 <span class="kw">async def</span> <span class="fn">batch_check</span>():<br>
 &nbsp;&nbsp;&nbsp;&nbsp;client = OTTClient()<br>
@@ -324,18 +324,18 @@ Summary: 8 PROCEED, 2 CAUTION, 0 DENY
 
 <div class="code">
 <span class="comment"># curl</span><br>
-curl https://api.opentrusttoken.com/v1/check/merchant.com<br>
+curl https://api.opentrustseal.com/v1/check/merchant.com<br>
 <br>
 <span class="comment"># JavaScript</span><br>
-<span class="kw">const</span> r = <span class="kw">await</span> fetch(<span class="str">'https://api.opentrusttoken.com/v1/check/merchant.com'</span>);<br>
+<span class="kw">const</span> r = <span class="kw">await</span> fetch(<span class="str">'https://api.opentrustseal.com/v1/check/merchant.com'</span>);<br>
 <span class="kw">const</span> data = <span class="kw">await</span> r.json();<br>
 <span class="kw">if</span> (data.recommendation === <span class="str">'DENY'</span>) <span class="kw">throw new</span> Error(data.reasoning);<br>
 <br>
 <span class="comment"># Go</span><br>
-resp, _ := http.Get(<span class="str">"https://api.opentrusttoken.com/v1/check/merchant.com"</span>)<br>
+resp, _ := http.Get(<span class="str">"https://api.opentrustseal.com/v1/check/merchant.com"</span>)<br>
 <br>
 <span class="comment"># Ruby</span><br>
-response = Net::HTTP.get(URI(<span class="str">"https://api.opentrusttoken.com/v1/check/merchant.com"</span>))
+response = Net::HTTP.get(URI(<span class="str">"https://api.opentrustseal.com/v1/check/merchant.com"</span>))
 </div>
 
 <div class="output-label">JSON Response</div>
@@ -360,8 +360,8 @@ response = Net::HTTP.get(URI(<span class="str">"https://api.opentrusttoken.com/v
 
 <footer>
 <div class="container">
-<img src="/ottlogo.png" alt="OpenTrustToken">
-<p><a href="https://api.opentrusttoken.com/docs">API Docs</a></p>
+<img src="/otslogo.png" alt="OpenTrustSeal">
+<p><a href="https://api.opentrustseal.com/docs">API Docs</a></p>
 </div>
 </footer>
 

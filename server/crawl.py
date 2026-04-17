@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Batch crawler for seeding the OpenTrustToken registry.
+"""Batch crawler for seeding the OpenTrustSeal registry.
 
 Usage:
     python3 crawl.py                    # Crawl default domain list
@@ -81,7 +81,7 @@ def get_tranco_top(n: int) -> list[str]:
     # Force reload with correct path
     import app.collectors.tranco as tranco_mod
     from pathlib import Path
-    data_dir = Path(os.environ.get("OTT_DATA_DIR", "./data"))
+    data_dir = Path(os.environ.get("OTS_DATA_DIR", "./data"))
     tranco_file = data_dir / "tranco.csv"
 
     if not tranco_file.exists():

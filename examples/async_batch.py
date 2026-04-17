@@ -11,7 +11,7 @@ import sys
 import time
 sys.path.insert(0, "../sdk/python")
 
-from opentrusttoken import OTTClient
+from opentrustseal import OTTClient
 
 
 async def batch_check():

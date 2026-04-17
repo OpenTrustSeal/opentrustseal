@@ -16,7 +16,7 @@ from pathlib import Path
 
 import httpx
 
-DATA_DIR = Path(os.environ.get("OTT_DATA_DIR", "./data"))
+DATA_DIR = Path(os.environ.get("OTS_DATA_DIR", "./data"))
 TRANCO_FILE = DATA_DIR / "tranco.csv"
 TRANCO_URL = "https://tranco-list.eu/top-1m.csv.zip"
 MAX_AGE_SECONDS = 7 * 86400  # refresh weekly

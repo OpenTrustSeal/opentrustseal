@@ -10,7 +10,7 @@ Usage: python3 basic_check.py stripe.com
 import sys
 sys.path.insert(0, "../sdk/python")
 
-from opentrusttoken import check
+from opentrustseal import check
 
 
 def pay_merchant(domain: str, amount: float):

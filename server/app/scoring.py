@@ -1,4 +1,4 @@
-"""Trust scoring engine (model: ott-v1.2-weights).
+"""Trust scoring engine (model: ots-v1.2-weights).
 
 Scoring tiers:
   Layer 1: Automated signals             (max ~65 average site)
@@ -10,7 +10,7 @@ Scoring tiers:
 
 from .models.signals import SignalBundle
 
-SCORING_MODEL = "ott-v1.3-weights"
+SCORING_MODEL = "ots-v1.4-weights"
 
 WEIGHTS = {
     "domain_age": 0.10,
@@ -43,6 +43,17 @@ WELL_KNOWN_TRANCO_MAX = 50000
 WELL_KNOWN_MIN_AGE_DAYS = 1825  # 5 years
 WELL_KNOWN_IDENTITY_FLOOR = 50
 WELL_KNOWN_SCORE_FLOOR = 75
+
+# v1.4: Top-100 Tranco consensus tier. Sustained presence in the top 100
+# across billions of real-user requests is itself a form of identity
+# verification that no automated system can fake. Combined with 10+ years
+# of domain age, this lifts the identity ceiling from 55 to 75, spreading
+# amazon/google/wikipedia from the 75 anchor floor into the 80-90 range.
+# Tighter eligibility than the brand anchor (top 100 vs top 50K, 10 years
+# vs 5 years) makes this safe to apply without inflating the long tail.
+CONSENSUS_TRANCO_MAX = 100
+CONSENSUS_MIN_AGE_DAYS = 3650  # 10 years
+CONSENSUS_IDENTITY_CEILING = 75
 
 # Registration bonus applied to identity signal before weighting
 REGISTRATION_BONUS = 30
@@ -126,6 +137,29 @@ def is_well_known_brand(signals: SignalBundle, domain_age_days: int) -> bool:
     return True
 
 
+def is_consensus_tier(signals: SignalBundle, domain_age_days: int) -> bool:
+    """True if the domain qualifies for the v1.4 consensus identity tier.
+
+    Stricter than is_well_known_brand: top 100 Tranco (not top 50K) and
+    10+ years old (not 5). All well_known_brand conditions must also be
+    met (clean rep, valid SSL). The consensus tier raises the identity
+    ceiling from 55 to 75, which spreads top brands above the 75 anchor
+    floor into the 80-90 range.
+    """
+    if not is_well_known_brand(signals, domain_age_days):
+        return False
+    if domain_age_days < CONSENSUS_MIN_AGE_DAYS:
+        return False
+    tranco_rank = getattr(signals.reputation, "_tranco_rank", None)
+    if tranco_rank is None or tranco_rank > CONSENSUS_TRANCO_MAX:
+        return False
+    # Also require a pre-ceiling identity score of at least 30 to ensure
+    # there's real signal beyond just the Tranco rank.
+    if signals.identity.score < 30:
+        return False
+    return True
+
+
 def compute_score(
     signals: SignalBundle,
     is_registered: bool = False,
@@ -134,6 +168,7 @@ def compute_score(
     registration_score: int = 0,
     content_scorable: bool = True,
     well_known_brand: bool = False,
+    consensus_tier: bool = False,
 ) -> int:
     identity_score = signals.identity.score
 
@@ -150,17 +185,27 @@ def compute_score(
         else:
             identity_score = min(55, identity_score + REGISTRATION_BONUS)
 
-    # KYC tier adjustments
+    # Identity ceiling: starts at 55 (automated), raised by consensus
+    # tier or KYC tier. Consensus tier (v1.4) is a non-KYC elevation
+    # based on Tranco top-100 + 10-year domain age.
     identity_ceiling = 55  # automated cap
+    if consensus_tier:
+        identity_ceiling = CONSENSUS_IDENTITY_CEILING
+
+    # KYC tier adjustments (override consensus if higher)
     if kyc_tier == "enhanced":
-        identity_ceiling = 65
+        identity_ceiling = max(identity_ceiling, 65)
     elif kyc_tier == "kyc_verified":
-        identity_ceiling = 80
+        identity_ceiling = max(identity_ceiling, 80)
     elif kyc_tier == "enterprise":
-        identity_ceiling = 100
+        identity_ceiling = max(identity_ceiling, 100)
 
     if kyc_tier != "none":
         identity_score = min(identity_ceiling, identity_score + KYC_BONUSES.get(kyc_tier, 0))
+    elif consensus_tier:
+        # Consensus tier raises the ceiling but doesn't add bonus points.
+        # The identity score just benefits from a higher cap.
+        identity_score = min(identity_ceiling, identity_score)
 
     # Well-known brand anchor: lift identity to the floor. This is applied
     # BEFORE the weighted sum so the 25% identity weight carries a real

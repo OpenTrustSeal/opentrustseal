@@ -43,14 +43,14 @@ async def is_public_company(org_name: str) -> bool:
             resp = await client.get(
                 "https://efts.sec.gov/LATEST/search-index",
                 params={"q": org_name, "dateRange": "custom", "startdt": "2020-01-01"},
-                headers={"User-Agent": "OpenTrustToken/0.1 (info@opentrusttoken.com)"},
+                headers={"User-Agent": "OpenTrustSeal/0.1 (info@opentrustseal.com)"},
             )
 
             if resp.status_code != 200:
                 # Try the simpler company tickers endpoint
                 resp2 = await client.get(
                     f"https://www.sec.gov/cgi-bin/browse-edgar?company={org_name}&CIK=&type=10-K&dateb=&owner=include&count=5&search_text=&action=getcompany",
-                    headers={"User-Agent": "OpenTrustToken/0.1 (info@opentrusttoken.com)"},
+                    headers={"User-Agent": "OpenTrustSeal/0.1 (info@opentrustseal.com)"},
                 )
                 # If we get results page with matches, company exists
                 is_match = resp2.status_code == 200 and "Results" in resp2.text and org_name.split()[0].lower() in resp2.text.lower()

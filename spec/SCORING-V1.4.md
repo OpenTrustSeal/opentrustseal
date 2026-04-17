@@ -61,7 +61,7 @@ Lowering PROCEED from 75 to 70 would also solve the "amazon is barely PROCEED" p
 3. In `compute_score()`, when consensus tier applies, set identity ceiling to 75 instead of 55
 4. Add `"consensus"` to the identity tier enum in the response
 5. Update rescore.py to call the new gate and pass it through
-6. Bump `SCORING_MODEL` to `"ott-v1.4-weights"`
+6. Bump `SCORING_MODEL` to `"ots-v1.4-weights"`
 7. Run rescore.py --dry-run to preview the impact across the full registry
 8. Run rescore.py to apply
 

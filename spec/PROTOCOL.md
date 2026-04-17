@@ -1,4 +1,4 @@
-# OpenTrustToken Protocol Specification
+# OpenTrustSeal Protocol Specification
 
 **Version:** 0.2.0-draft
 **Status:** Draft
@@ -10,7 +10,7 @@
 
 ## 1. Abstract
 
-OpenTrustToken (OTT) is an open protocol that enables AI agents to verify the
+OpenTrustSeal (OTT) is an open protocol that enables AI agents to verify the
 trustworthiness of a website before initiating financial transactions. The
 protocol provides cryptographically signed evidence bundles containing
 observable trust signals (domain age, SSL, DNS, reputation, content, identity
@@ -85,7 +85,7 @@ Site Owner                 Verification Authority           Querying Agent
     |<-----------------------------|                              |
     |                              |                              |
     |  5. Site publishes           |                              |
-    |  /.well-known/ott.json       |                              |
+    |  /.well-known/ots.json       |                              |
     |                              |                              |
     |                              |  6. Agent queries token      |
     |                              |<-----------------------------|
@@ -103,12 +103,12 @@ Site Owner                 Verification Authority           Querying Agent
 Agents can verify trust through two complementary paths:
 
 **Path A: Direct Discovery**
-Agent fetches `https://{domain}/.well-known/ott.json` directly from the site.
+Agent fetches `https://{domain}/.well-known/ots.json` directly from the site.
 The token is self-contained and cryptographically signed. The agent verifies
 the signature against the VA's published public key. No API call needed.
 
 **Path B: API Verification**
-Agent queries the VA's API: `GET https://api.opentrusttoken.com/v1/check/{domain}`.
+Agent queries the VA's API: `GET https://api.opentrustseal.com/v1/check/{domain}`.
 The VA returns the latest trust assessment. This path supports bulk queries,
 real-time scoring, and enriched metadata not available in the static token.
 
@@ -122,7 +122,7 @@ Agents should support both; payment rails can choose which to require.
 Sites MUST publish their trust token at:
 
 ```
-https://{domain}/.well-known/ott.json
+https://{domain}/.well-known/ots.json
 ```
 
 The file MUST be served with:
@@ -141,12 +141,12 @@ inspect, challenge, or override the score based on the underlying data.
 {
   "@context": [
     "https://www.w3.org/ns/credentials/v2",
-    "https://opentrusttoken.com/ns/v1"
+    "https://opentrustseal.com/ns/v1"
   ],
-  "type": ["VerifiableCredential", "OpenTrustToken"],
+  "type": ["VerifiableCredential", "OpenTrustSeal"],
   "issuer": {
-    "id": "did:web:opentrusttoken.com",
-    "name": "OpenTrustToken Verification Authority"
+    "id": "did:web:opentrustseal.com",
+    "name": "OpenTrustSeal Verification Authority"
   },
   "issuanceDate": "2026-04-10T00:00:00Z",
   "expirationDate": "2026-04-17T00:00:00Z",
@@ -197,14 +197,14 @@ inspect, challenge, or override the score based on the underlying data.
     },
     "flags": [],
     "trustScore": 82,
-    "scoringModel": "ott-v1-weights",
+    "scoringModel": "ots-v1-weights",
     "recommendation": "PROCEED",
     "agentGuidance": "Strong technical signals, clean reputation. No identity verification on file. Suitable for transactions under $500 without additional checks."
   },
   "proof": {
     "type": "Ed25519Signature2020",
     "created": "2026-04-10T00:00:00Z",
-    "verificationMethod": "did:web:opentrusttoken.com#signing-key-1",
+    "verificationMethod": "did:web:opentrustseal.com#signing-key-1",
     "proofPurpose": "assertionMethod",
     "proofValue": "z3FXQjecWNiPg...base58-encoded-signature"
   }
@@ -227,7 +227,7 @@ changes and scoring model improvements over time.
 | `signals` | object | Yes | Observable evidence: raw facts and per-signal scores |
 | `flags` | array[string] | Yes | Active warnings (empty array if none) |
 | `trustScore` | integer (0--100) | Yes | Computed summary of all signals (see Section 7) |
-| `scoringModel` | string | Yes | Identifies the scoring weight version (e.g. `ott-v1-weights`) |
+| `scoringModel` | string | Yes | Identifies the scoring weight version (e.g. `ots-v1-weights`) |
 | `recommendation` | enum | Yes | One of: `PROCEED`, `CAUTION`, `DENY` |
 | `agentGuidance` | string | Yes | Natural language guidance for agent decision-making |
 
@@ -302,17 +302,17 @@ against, but the evidence is always available for agents that want to make
 their own assessment.
 
 The scoring model is **versioned and continuously improvable**. Weights are
-identified by model version (e.g. `ott-v1-weights`). As real-world fraud
+identified by model version (e.g. `ots-v1-weights`). As real-world fraud
 correlation data accumulates, weights will be refined. Old model versions
 remain documented so consumers can understand score changes across versions.
 
 When the model changes:
 - The `scoringModel` field in the token updates to the new version
-- A changelog is published at `opentrusttoken.com/scoring/changelog`
+- A changelog is published at `opentrustseal.com/scoring/changelog`
 - Existing tokens are re-scored on next refresh cycle
 - Score changes of 10+ points trigger the `SCORE_DECLINING` or equivalent flag
 
-### 7.1 Signal Categories and Weights (Model: ott-v1-weights)
+### 7.1 Signal Categories and Weights (Model: ots-v1-weights)
 
 The composite trust score is a weighted average of six signal categories:
 
@@ -405,21 +405,21 @@ The VA fetches this file over HTTPS. Once verified, the file can be removed.
 The VA maintains Ed25519 signing keys. The public key is published at:
 
 ```
-https://opentrusttoken.com/.well-known/did.json
+https://opentrustseal.com/.well-known/did.json
 ```
 
 In DID Document format:
 ```json
 {
   "@context": "https://www.w3.org/ns/did/v1",
-  "id": "did:web:opentrusttoken.com",
+  "id": "did:web:opentrustseal.com",
   "verificationMethod": [{
-    "id": "did:web:opentrusttoken.com#signing-key-1",
+    "id": "did:web:opentrustseal.com#signing-key-1",
     "type": "Ed25519VerificationKey2020",
-    "controller": "did:web:opentrusttoken.com",
+    "controller": "did:web:opentrustseal.com",
     "publicKeyMultibase": "z6Mkf5rGMoatrSj1f...base58-encoded-public-key"
   }],
-  "assertionMethod": ["did:web:opentrusttoken.com#signing-key-1"]
+  "assertionMethod": ["did:web:opentrustseal.com#signing-key-1"]
 }
 ```
 
@@ -433,7 +433,7 @@ In DID Document format:
 
 ### 9.3 Signature Verification (Agent Side)
 
-1. Fetch the VA's public key from `did:web:opentrusttoken.com`
+1. Fetch the VA's public key from `did:web:opentrustseal.com`
 2. Extract `credentialSubject` from the token
 3. Canonicalize with JCS
 4. Hash with SHA-256
@@ -448,7 +448,7 @@ remain listed (with `revoked` date) for 90 days to allow token expiration.
 Key rotation events are logged to an append-only transparency log at:
 
 ```
-https://opentrusttoken.com/.well-known/ott-keylog.json
+https://opentrustseal.com/.well-known/ott-keylog.json
 ```
 
 ## 10. API Specification
@@ -457,7 +457,7 @@ https://opentrusttoken.com/.well-known/ott-keylog.json
 
 ```
 GET /v1/check/{domain}
-Host: api.opentrusttoken.com
+Host: api.opentrustseal.com
 Authorization: Bearer {api_key}
 Accept: application/json
 ```
@@ -514,11 +514,11 @@ recommendation. This is the lightweight API format; the full W3C VC format
   },
   "flags": [],
   "trustScore": 82,
-  "scoringModel": "ott-v1-weights",
+  "scoringModel": "ots-v1-weights",
   "recommendation": "PROCEED",
   "reasoning": "Strong technical signals, clean reputation. No identity verification on file. Suitable for transactions under $500.",
   "signature": "z3FXQjecWNiPg...base58-encoded-ed25519-signature",
-  "issuer": "did:web:opentrusttoken.com"
+  "issuer": "did:web:opentrustseal.com"
 }
 ```
 
@@ -548,7 +548,7 @@ an initial check:
 
 ```
 POST /v1/check/request
-Host: api.opentrusttoken.com
+Host: api.opentrustseal.com
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -593,9 +593,9 @@ Sites can reference their trust status in `llms.txt`:
 
 ```
 # Trust Verification
-This site is checked by OpenTrustToken.
+This site is checked by OpenTrustSeal.
 Trust Score: 82/100
-Check: https://api.opentrusttoken.com/v1/check/example.com
+Check: https://api.opentrustseal.com/v1/check/example.com
 ```
 
 This gives agents a secondary discovery path through the llms.txt
@@ -644,7 +644,7 @@ The v1 SDK targets Python because the dominant agent frameworks (LangGraph,
 CrewAI, AutoGen) are Python-based.
 
 ```python
-from opentrusttoken import check
+from opentrustseal import check
 
 # Quick check with recommendation
 result = check("merchant.com")
@@ -658,13 +658,13 @@ print(result.signals.identity.verified)     # False
 
 # Access the computed score
 print(result.trust_score)                   # 82
-print(result.scoring_model)                 # "ott-v1-weights"
+print(result.scoring_model)                 # "ots-v1-weights"
 ```
 
 #### LangChain / LangGraph Tool
 
 ```python
-from opentrusttoken.langchain import OTTVerifyTool
+from opentrustseal.langchain import OTTVerifyTool
 
 # Add to any LangChain agent as a tool
 tools = [OTTVerifyTool()]
@@ -674,7 +674,7 @@ agent = create_react_agent(llm, tools)
 #### CrewAI Tool
 
 ```python
-from opentrusttoken.crewai import OTTVerifyTool
+from opentrustseal.crewai import OTTVerifyTool
 
 # Add to any CrewAI agent
 agent = Agent(
@@ -700,7 +700,7 @@ v1 API adoption validates demand.
 
 ### 12.3 JavaScript SDK (Future)
 
-A Node.js SDK (`@opentrusttoken/sdk`) will follow the Python SDK once agent
+A Node.js SDK (`@opentrustseal/sdk`) will follow the Python SDK once agent
 framework adoption is established. The API is identical across languages.
 
 ## 13. Security Considerations
@@ -738,7 +738,7 @@ framework adoption is established. The API is identical across languages.
 
 The OTT protocol specification is open and versioned. Changes go through:
 
-1. RFC published to opentrusttoken.com/rfcs/
+1. RFC published to opentrustseal.com/rfcs/
 2. 30-day public comment period
 3. Review by advisory board
 4. Ratification and version bump
@@ -749,14 +749,14 @@ The protocol supports multiple Verification Authorities. The `issuer` field
 in the trust token identifies which VA signed it. Agents can maintain a list
 of trusted VAs, similar to how browsers maintain trusted certificate authorities.
 
-In v1, OpenTrustToken operates as the sole VA. The multi-VA framework is
+In v1, OpenTrustSeal operates as the sole VA. The multi-VA framework is
 specified now so the architecture does not need to change when competitors
 or regional VAs emerge.
 
 ## 15. Versioning
 
 The protocol uses semantic versioning. The version is embedded in:
-- The `@context` URL: `https://opentrusttoken.com/ns/v1`
+- The `@context` URL: `https://opentrustseal.com/ns/v1`
 - The API path: `/v1/check/`
 - The token itself (implicit via context)
 

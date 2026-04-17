@@ -33,7 +33,7 @@ class CheckResponse(BaseModel):
     signals: SignalBundle
     flags: list[str] = Field(default_factory=list)
     trust_score: int = Field(alias="trustScore")
-    scoring_model: str = Field(default="ott-v1.2-weights", alias="scoringModel")
+    scoring_model: str = Field(default="ots-v1.2-weights", alias="scoringModel")
     site_category: str = Field(default="consumer", alias="siteCategory")
     jurisdiction: dict = Field(default_factory=dict)
     recommendation: str  # PROCEED, CAUTION, DENY
@@ -51,7 +51,7 @@ class CheckResponse(BaseModel):
     checklist: list[ChecklistItem] = Field(default_factory=list)
     checklist_summary: ChecklistSummary = Field(alias="checklistSummary")
     signature: str
-    issuer: str = "did:web:opentrusttoken.com"
+    issuer: str = "did:web:opentrustseal.com"
 
     model_config = {"populate_by_name": True}
 

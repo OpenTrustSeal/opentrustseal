@@ -21,7 +21,7 @@ import json
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.database import init_db, get_all_raw_signals, store_check, _get_conn
-from app.scoring import compute_score, compute_flags, compute_recommendation, generate_reasoning, SCORING_MODEL, _get_institutional_bonus, is_well_known_brand
+from app.scoring import compute_score, compute_flags, compute_recommendation, generate_reasoning, SCORING_MODEL, _get_institutional_bonus, is_well_known_brand, is_consensus_tier
 from app.checklist import generate_checklist, checklist_summary
 from app.models.signals import (
     SignalBundle, DomainAgeSignal, SSLSignal, DNSSignal,
@@ -188,6 +188,9 @@ def main():
         # v1.3 anchor gate: top Tranco + aged + clean reputation + valid SSL
         well_known = is_well_known_brand(signals, domain_age_days)
 
+        # v1.4 consensus tier: top-100 Tranco + 10-year age
+        consensus = is_consensus_tier(signals, domain_age_days)
+
         # Content is treated as unscorable when the stored raw says so. This
         # lets the anchor path re-normalize the weights the same way the live
         # pipeline does.
@@ -197,6 +200,7 @@ def main():
             signals, is_registered=False, domain=domain,
             content_scorable=not content_unscorable,
             well_known_brand=well_known,
+            consensus_tier=consensus,
         )
 
         flags = compute_flags(
@@ -246,7 +250,7 @@ def main():
             "checklist": cl,
             "checklistSummary": cl_summary,
             "signature": signature,
-            "issuer": "did:web:opentrusttoken.com",
+            "issuer": "did:web:opentrustseal.com",
         }
         if not dry_run:
             store_check(domain, response)

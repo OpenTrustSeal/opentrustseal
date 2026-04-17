@@ -1,14 +1,14 @@
-"""OpenTrustToken client - sync and async HTTP client."""
+"""OpenTrustSeal client - sync and async HTTP client."""
 
 import httpx
 from .models import CheckResult, _parse_response
 
-DEFAULT_BASE_URL = "https://api.opentrusttoken.com"
+DEFAULT_BASE_URL = "https://api.opentrustseal.com"
 DEFAULT_TIMEOUT = 30
 
 
 class OTTClient:
-    """OpenTrustToken API client.
+    """OpenTrustSeal API client.
 
     Usage:
         client = OTTClient()  # free tier, no key needed
@@ -29,7 +29,7 @@ class OTTClient:
     ):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self.headers = {"User-Agent": "opentrusttoken-python/0.1.0"}
+        self.headers = {"User-Agent": "opentrustseal-python/0.1.0"}
         if api_key:
             self.headers["Authorization"] = f"Bearer {api_key}"
 
@@ -111,7 +111,7 @@ def check(domain: str, refresh: bool = False) -> CheckResult:
         CheckResult with trust_score, recommendation, signals, etc.
 
     Example:
-        from opentrusttoken import check
+        from opentrustseal import check
 
         result = check("merchant.com")
         if result.recommendation == "DENY":
@@ -129,7 +129,7 @@ async def async_check(domain: str, refresh: bool = False) -> CheckResult:
     """Check a domain's trust score (async version).
 
     Example:
-        from opentrusttoken import async_check
+        from opentrustseal import async_check
 
         result = await async_check("merchant.com")
         if result.is_blocked:

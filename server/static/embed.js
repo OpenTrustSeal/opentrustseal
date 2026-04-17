@@ -1,8 +1,8 @@
 /**
- * OpenTrustToken Embed Script v0.3
+ * OpenTrustSeal Embed Script v0.3
  *
  * Usage:
- *   <script src="https://api.opentrusttoken.com/embed.js" data-domain="yoursite.com"></script>
+ *   <script src="https://api.opentrustseal.com/embed.js" data-domain="yoursite.com"></script>
  *
  * What this script does:
  *   1. Fetches the latest signed trust token from the OTT API
@@ -13,7 +13,7 @@
 (function() {
   'use strict';
 
-  var API = 'https://api.opentrusttoken.com';
+  var API = 'https://api.opentrustseal.com';
   var script = document.currentScript;
   if (!script) return;
 

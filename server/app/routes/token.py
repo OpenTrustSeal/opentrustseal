@@ -16,13 +16,13 @@ def _rate_limit(request: Request):
 router = APIRouter(prefix="/v1/token", tags=["Token Serving"])
 
 
-@router.get("/{domain}/ott.json")
+@router.get("/{domain}/ots.json")
 async def serve_token(domain: str, _rl=Depends(_rate_limit)):
     """Serve the latest signed trust token for a domain.
 
     This endpoint is designed for two use cases:
     1. embed.js fetches it to inject token data into the page
-    2. Site owners use it in a cron job to refresh their .well-known/ott.json
+    2. Site owners use it in a cron job to refresh their .well-known/ots.json
 
     Returns cached results if available. If no check exists for the domain,
     runs a fresh check automatically.

@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenTrustToken - Independent trust attestation for agentic commerce</title>
+<title>OpenTrustSeal - Independent trust attestation for agentic commerce</title>
 <meta name="description" content="The independent trust attestation layer for AI agent payments. Signed evidence bundles, longitudinal trust profiles, compositional brand anchors. Free site audit or one API call before any transaction.">
-<link rel="icon" type="image/png" href="/ottlogo.png">
+<link rel="icon" type="image/png" href="/otslogo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -157,14 +157,14 @@ footer a{color:var(--text-light)}
 <nav class="nav" aria-label="Main">
 <div class="nav-inner">
 <a href="/" class="nav-brand">
-<img src="/ottlogo.png" alt="OpenTrustToken" height="32">
+<img src="/otslogo.png" alt="OpenTrustSeal" height="32">
 </a>
 <div class="nav-links">
 <a href="#how">How It Works</a>
 <a href="/register.html">Register</a>
 <a href="/dashboard.html">Dashboard</a>
 <a href="#developers">Developers</a>
-<a href="https://api.opentrusttoken.com/docs" class="nav-cta">API Docs</a>
+<a href="https://api.opentrustseal.com/docs" class="nav-cta">API Docs</a>
 </div>
 </div>
 </nav>
@@ -173,9 +173,9 @@ footer a{color:var(--text-light)}
 
 <header class="hero">
 <div class="container">
-<img src="/ottlogo.png" alt="" class="hero-logo" aria-hidden="true">
+<img src="/otslogo.png" alt="" class="hero-logo" aria-hidden="true">
 <h1>Independent trust attestation for agentic commerce</h1>
-<p class="subtitle">AI agents are starting to make autonomous payments. They need to know which merchants to trust before they pay. OpenTrustToken answers that question with a signed evidence bundle, a longitudinal trust profile, and a PROCEED / CAUTION / DENY recommendation. Run a free check on any domain, or call the API before your agent transacts.</p>
+<p class="subtitle">AI agents are starting to make autonomous payments. They need to know which merchants to trust before they pay. OpenTrustSeal answers that question with a signed evidence bundle, a longitudinal trust profile, and a PROCEED / CAUTION / DENY recommendation. Run a free check on any domain, or call the API before your agent transacts.</p>
 </div>
 </header>
 
@@ -209,7 +209,7 @@ footer a{color:var(--text-light)}
 <section id="how">
 <div class="container">
 <h2>How it works</h2>
-<p style="color:var(--text-light);max-width:600px">Stripe, Coinbase x402, Visa AP2, and Skyfire are all building the "how agents pay" layer. Nobody has standardized the pre-transaction question: "should this agent pay this specific merchant?" That is the layer OpenTrustToken owns.</p>
+<p style="color:var(--text-light);max-width:600px">Stripe, Coinbase x402, Visa AP2, and Skyfire are all building the "how agents pay" layer. Nobody has standardized the pre-transaction question: "should this agent pay this specific merchant?" That is the layer OpenTrustSeal owns.</p>
 <div class="how-grid">
 <div class="how-card">
 <div class="how-num">1</div>
@@ -254,11 +254,11 @@ footer a{color:var(--text-light)}
 <p style="margin-bottom:1rem">Verify any domain before a transaction. Signed with Ed25519 so results cannot be forged. Works today with LangChain, CrewAI, OpenAI tools, and any agent framework that can make an HTTP call.</p>
 <div class="code-block">
 <span class="comment"># Check any domain before your agent pays</span><br>
-<span class="comment"># GET https://api.opentrusttoken.com/v1/check/merchant.com</span><br>
+<span class="comment"># GET https://api.opentrustseal.com/v1/check/merchant.com</span><br>
 <br>
 <span class="kw">import</span> httpx<br>
 <br>
-r = httpx.<span class="fn">get</span>(<span class="str">"https://api.opentrusttoken.com/v1/check/chewy.com"</span>)<br>
+r = httpx.<span class="fn">get</span>(<span class="str">"https://api.opentrustseal.com/v1/check/chewy.com"</span>)<br>
 data = r.<span class="fn">json</span>()<br>
 <br>
 <span class="comment"># data["trustScore"]       -> 77</span><br>
@@ -276,7 +276,7 @@ data = r.<span class="fn">json</span>()<br>
 <span class="kw">elif</span> data[<span class="str">"recommendation"</span>] == <span class="str">"CAUTION"</span>:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">confirm_with_user</span>(data[<span class="str">"reasoning"</span>])<br>
 </div>
-<p style="font-size:0.85rem">Free tier: 60 requests/minute, 10,000/month. <a href="https://api.opentrusttoken.com/docs" style="color:#93c5fd">API docs</a> | <a href="/examples/" style="color:#93c5fd">Integration examples</a> | <a href="/marketing/" style="color:#93c5fd">How scoring works</a></p>
+<p style="font-size:0.85rem">Free tier: 60 requests/minute, 10,000/month. <a href="https://api.opentrustseal.com/docs" style="color:#93c5fd">API docs</a> | <a href="/examples/" style="color:#93c5fd">Integration examples</a> | <a href="/marketing/" style="color:#93c5fd">How scoring works</a></p>
 </div>
 </section>
 
@@ -284,9 +284,9 @@ data = r.<span class="fn">json</span>()<br>
 
 <footer>
 <div class="container">
-<img src="/ottlogo.png" alt="OpenTrustToken" class="footer-logo">
+<img src="/otslogo.png" alt="OpenTrustSeal" class="footer-logo">
 <p>Trust verification for AI agent commerce</p>
-<p style="margin-top:0.5rem"><a href="https://api.opentrusttoken.com/docs">API Docs</a></p>
+<p style="margin-top:0.5rem"><a href="https://api.opentrustseal.com/docs">API Docs</a></p>
 </div>
 </footer>
 
@@ -309,7 +309,7 @@ function doCheck(){
   loading.classList.add('visible');
   results.classList.remove('visible');
 
-  fetch('https://api.opentrusttoken.com/v1/check/' + encodeURIComponent(domain))
+  fetch('https://api.opentrustseal.com/v1/check/' + encodeURIComponent(domain))
     .then(function(r){ return r.json(); })
     .then(function(d){
       loading.classList.remove('visible');
@@ -379,7 +379,7 @@ function renderItems(items){
     html += '<div class="cl-body">';
     html += '<div class="cl-title">' + esc(item.item) + ' <span class="cl-impact">' + item.impact + '</span></div>';
     if(item.status !== 'pass'){
-      if(item.item === 'Registered with OpenTrustToken'){
+      if(item.item === 'Registered with OpenTrustSeal'){
         html += '<a href="/register.html" class="cl-toggle" style="display:inline-block;margin-top:0.2rem">Register now (free)</a>';
       } else {
         html += '<button class="cl-toggle" type="button">How to fix</button>';

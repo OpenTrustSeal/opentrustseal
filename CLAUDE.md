@@ -1,4 +1,4 @@
-# OpenTrustToken Project State
+# OpenTrustSeal Project State
 
 ## What This Is
 
@@ -9,7 +9,7 @@ The product has three faces:
 - **For agents:** "One API call before paying" (the API)
 - **For the ecosystem:** signed Ed25519 evidence bundles that can be verified without trusting us, enabling compositional use by payment protocols (AP2, x402, MPP) without putting us on their critical path
 
-The real asset is the longitudinal database of trust profiles for every domain we check. Raw signal data stored separately from scores so we can re-score without re-crawling. Scoring is versioned (currently ott-v1.3-weights).
+The real asset is the longitudinal database of trust profiles for every domain we check. Raw signal data stored separately from scores so we can re-score without re-crawling. Scoring is versioned (currently ots-v1.3-weights).
 
 ## What's Built and Deployed
 
@@ -18,20 +18,20 @@ The real asset is the longitudinal database of trust profiles for every domain w
 **API box (ott-api-1):**
 - DigitalOcean, SFO2, 206.189.65.177, Ubuntu 24.04, 1GB RAM
 - SSH: root@206.189.65.177 using ~/.ssh/id_ed25519
-- API: https://api.opentrusttoken.com (FastAPI + uvicorn behind nginx, 2 workers)
-- Landing page: https://opentrusttoken.com (static HTML served by nginx)
-- Internal docs: https://opentrusttoken.com/marketing/ (knowledge base for team)
+- API: https://api.opentrustseal.com (FastAPI + uvicorn behind nginx, 2 workers)
+- Landing page: https://opentrustseal.com (static HTML served by nginx)
+- Internal docs: https://opentrustseal.com/marketing/ (knowledge base for team)
 - SSL: Let's Encrypt, auto-renewing via certbot
-- Service: systemd unit `opentrusttoken.service`, auto-restarts
-- Database: SQLite at /opt/opentrusttoken/data/ott.db (1,112 domains, 2,888 raw signal records)
-- Signing keys: Ed25519 at /opt/opentrusttoken/keys/
-- Tranco list: /opt/opentrusttoken/data/tranco.csv (top 1M domains)
-- Runtime dir: /opt/opentrusttoken/logs (recreated by deploy.sh so systemd mount namespacing doesn't fail)
+- Service: systemd unit `opentrustseal.service`, auto-restarts
+- Database: SQLite at /opt/opentrustseal/data/ots.db (1,112 domains, 2,888 raw signal records)
+- Signing keys: Ed25519 at /opt/opentrustseal/keys/
+- Tranco list: /opt/opentrustseal/data/tranco.csv (top 1M domains)
+- Runtime dir: /opt/opentrustseal/logs (recreated by deploy.sh so systemd mount namespacing doesn't fail)
 
-**Crawler box (ott-crawler-1):**
+**Crawler box (ots-crawler-1):**
 - DigitalOcean, SFO2, 167.99.172.189, Ubuntu 24.04, 1GB RAM + 2GB swap
 - SSH: root@167.99.172.189 using ~/.ssh/id_ed25519
-- Service: systemd unit `ott-crawler.service` running as `ott` user
+- Service: systemd unit `ots-crawler.service` running as `ott` user
 - Binds: 10.120.0.3:8901 (private VPC only, not public)
 - UFW: allows SSH from anywhere + 8901/tcp from 10.120.0.2 (API box private IP) only
 - Runs Playwright + headless Chromium + playwright-stealth v2
@@ -42,11 +42,11 @@ The real asset is the longitudinal database of trust profiles for every domain w
 **MacBook Air crawler node (pennys-macbook-air):**
 - Physical hardware at Allen's home behind UniFi Cloud Gateway Fiber on Spectrum residential (Charter AS20001, Northridge CA)
 - SSH: pennyai@10.10.100.84 using ~/.ssh/id_ed25519
-- macOS 26.2 on Apple Silicon, Python 3.9 venv at `~/ott-crawler/`
+- macOS 26.2 on Apple Silicon, Python 3.9 venv at `~/ots-crawler/`
 - Tailnet address: **100.125.118.64** (on Allen's tailnet alongside the API box at 100.123.37.126)
-- Service: launchd agent `~/Library/LaunchAgents/com.opentrusttoken.crawler.plist`, `KeepAlive` on crash, stdout/stderr to `~/ott-crawler/crawler.*.log`
-- Wrapper script `~/ott-crawler/start.sh` sources `crawler.env` and execs `uvicorn fetch_service:app --host 100.125.118.64 --port 8901`
-- Env at `~/ott-crawler/crawler.env` (chmod 600): shares CRAWLER_SHARED_SECRET with the DO crawler box so API box auth is identical
+- Service: launchd agent `~/Library/LaunchAgents/com.opentrustseal.crawler.plist`, `KeepAlive` on crash, stdout/stderr to `~/ots-crawler/crawler.*.log`
+- Wrapper script `~/ots-crawler/start.sh` sources `crawler.env` and execs `uvicorn fetch_service:app --host 100.125.118.64 --port 8901`
+- Env at `~/ots-crawler/crawler.env` (chmod 600): shares CRAWLER_SHARED_SECRET with the DO crawler box so API box auth is identical
 - **Browser: Chrome for Testing 138** (not the bundled headless-shell) via `CRAWLER_BROWSER_EXECUTABLE` hardcoded in start.sh because `crawler.env` can't parse paths with spaces cleanly
 - playwright-stealth v2 applied to every context
 - Reachable from API box only via Tailscale (no port forward on home UniFi; home network policy-route keeps crawler traffic off the office site-to-site VPN tunnel)
@@ -84,7 +84,7 @@ Counters exposed at `/stats.fetch` per tier. Shared-secret header between API an
 main.py                 -- FastAPI app, DID document, health, /stats with fetch tier counters + daily_crawl heartbeat
 heartbeat.py            -- Reads the last-successful daily-crawl timestamp so /stats.daily_crawl exposes pipeline freshness for external monitors
 pipeline.py             -- Orchestrates collectors -> scoring -> signing -> checklist + in-flight dedupe
-scoring.py              -- ott-v1.3-weights, PROCEED/CAUTION/DENY, well-known brand anchor
+scoring.py              -- ots-v1.3-weights, PROCEED/CAUTION/DENY, well-known brand anchor
 signing.py              -- Ed25519 key management, sign/verify
 database.py             -- SQLite with raw_signals, scored_results, score_history, registrations
 checklist.py            -- Generates actionable fix items from signal data
@@ -107,7 +107,7 @@ models/
   registration.py       -- Registration request/response + verification_score map
 routes/
   check.py              -- GET /v1/check/{domain}, POST /v1/check/request, GET dashboard
-  token.py              -- GET /v1/token/{domain}/ott.json
+  token.py              -- GET /v1/token/{domain}/ots.json
   register.py           -- Registration flow
 ```
 
@@ -116,21 +116,21 @@ routes/
 ```
 fetch_service.py        -- FastAPI app with /fetch endpoint, pool of warm Chromium contexts,
                            shared secret auth, proxy parameter for tier 3, stealth applied to all contexts
-ott-crawler.service     -- systemd unit with memory caps and process hardening
+ots-crawler.service     -- systemd unit with memory caps and process hardening
 ```
 
 ### API Endpoints
 - GET /v1/check/{domain} -- check a domain (cached, ?refresh=true to force)
 - POST /v1/check/request -- request a fresh check
 - GET /v1/check/{domain}/dashboard -- current check + history + registration (used by dashboard UI)
-- GET /v1/token/{domain}/ott.json -- serve token for a domain
+- GET /v1/token/{domain}/ots.json -- serve token for a domain
 - GET /v1/register -- registration flow endpoints
 - GET /.well-known/did.json -- DID document with public signing key
 - GET /stats -- registry statistics + fetch tier counters + daily_crawl heartbeat (pipeline freshness)
 - GET /health -- health check
 - GET /docs -- Swagger UI
 
-### Scoring Model (ott-v1.3-weights)
+### Scoring Model (ots-v1.3-weights)
 
 **Weights (when content is scorable):**
 reputation=30%, identity=25%, content=17%, domain_age=10%, ssl=10%, dns=8%
@@ -179,7 +179,7 @@ phone, address) used for verification only, never exposed.
 - `signals`: domainAge, ssl, dns, content, reputation, identity (each with score + evidence)
 - `flags`: [CONTENT_UNSCORABLE, WELL_KNOWN_BRAND, NO_SSL, NEW_DOMAIN, MALWARE_DETECTED, PHISHING_DETECTED, SPAM_LISTED, ...]
 - `trustScore`: 0-100
-- `scoringModel`: "ott-v1.3-weights"
+- `scoringModel`: "ots-v1.3-weights"
 - `siteCategory`: consumer / api_service / infrastructure
 - `jurisdiction`: country, legal framework, cross-border risk, dispute resolution
 - `recommendation`: PROCEED / CAUTION / DENY
@@ -189,38 +189,38 @@ phone, address) used for verification only, never exposed.
 - `checklist`: actionable fix items
 - `checklistSummary`: total / passing / failing / improvable counts
 - `signature`: Ed25519 sig over the canonical signable payload
-- `issuer`: "did:web:opentrusttoken.com"
+- `issuer`: "did:web:opentrustseal.com"
 
 ### Deployment
 From local Mac:
 ```bash
-cd opentrusttoken/deploy
+cd opentrustseal/deploy
 bash deploy.sh root@206.189.65.177
 ```
 Or manually:
 ```bash
-rsync -avz --exclude='venv/' --exclude='data/' --exclude='keys/' --exclude='logs/' --exclude='__pycache__/' server/ root@206.189.65.177:/opt/opentrusttoken/
-ssh root@206.189.65.177 "mkdir -p /opt/opentrusttoken/logs && chown -R ott:ott /opt/opentrusttoken && systemctl restart opentrusttoken"
+rsync -avz --exclude='venv/' --exclude='data/' --exclude='keys/' --exclude='logs/' --exclude='__pycache__/' server/ root@206.189.65.177:/opt/opentrustseal/
+ssh root@206.189.65.177 "mkdir -p /opt/opentrustseal/logs && chown -R ott:ott /opt/opentrustseal && systemctl restart opentrustseal"
 ```
 
-Crawler box deploys are manual right now (rsync crawler/fetch_service.py to /opt/ott-crawler/, chown ott:ott, systemctl restart ott-crawler).
+Crawler box deploys are manual right now (rsync crawler/fetch_service.py to /opt/ots-crawler/, chown ott:ott, systemctl restart ots-crawler).
 
 ### Environment Files (not in repo)
-- `/etc/opentrusttoken/crawler.env` on API box + DO crawler box: `CRAWLER_URL=http://10.120.0.3:8901`, `CRAWLER_SHARED_SECRET=<token>`, etc
-- `/etc/opentrusttoken/decodo.env` on API box: `DECODO_HOST=gate.decodo.com`, `DECODO_PORT=7000`, `DECODO_USER=...`, `DECODO_PASS=...`
-- `/etc/opentrusttoken/macbook.env` on API box: `MACBOOK_URL=http://100.125.118.64:8901` (shares CRAWLER_SHARED_SECRET, defaults to it if no MACBOOK_SHARED_SECRET override)
-- `~/ott-crawler/crawler.env` on Mac Air (user-owned, chmod 600): `CRAWLER_SHARED_SECRET=<matches VPS>`, `CRAWLER_POOL_SIZE=2`, `CRAWLER_DEFAULT_TIMEOUT_MS=25000`, `CRAWLER_BROWSER_CHANNEL=` (empty; Chrome for Testing is set via executable_path in start.sh instead)
+- `/etc/opentrustseal/crawler.env` on API box + DO crawler box: `CRAWLER_URL=http://10.120.0.3:8901`, `CRAWLER_SHARED_SECRET=<token>`, etc
+- `/etc/opentrustseal/decodo.env` on API box: `DECODO_HOST=gate.decodo.com`, `DECODO_PORT=7000`, `DECODO_USER=...`, `DECODO_PASS=...`
+- `/etc/opentrustseal/macbook.env` on API box: `MACBOOK_URL=http://100.125.118.64:8901` (shares CRAWLER_SHARED_SECRET, defaults to it if no MACBOOK_SHARED_SECRET override)
+- `~/ots-crawler/crawler.env` on Mac Air (user-owned, chmod 600): `CRAWLER_SHARED_SECRET=<matches VPS>`, `CRAWLER_POOL_SIZE=2`, `CRAWLER_DEFAULT_TIMEOUT_MS=25000`, `CRAWLER_BROWSER_CHANNEL=` (empty; Chrome for Testing is set via executable_path in start.sh instead)
 - All VPS env files are `chmod 640` owned `root:ott` so the `ott` service user can read but not write
 
 ### Credentials
-Local only at `~/.config/opentrusttoken/credentials` (never in iCloud).
+Local only at `~/.config/opentrustseal/credentials` (never in iCloud).
 Contains: cPanel creds for scosi.com and dathorn, Google Safe Browsing key, Decodo proxy credentials.
 cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` profiles, calls UAPI at cpanel83.gzo.com:2083).
 
 ## Key Decisions Made
 
 1. **Evidence-first, score second.** API returns raw signals before the computed score. Score is a convenience summary, not an authoritative verdict.
-2. **Scoring model is versioned** (ott-v1.3-weights). Can be changed and re-scored from stored raw data.
+2. **Scoring model is versioned** (ots-v1.3-weights). Can be changed and re-scored from stored raw data.
 3. **Raw signals stored separately from scored results.** Algorithm changes don't require re-crawling.
 4. **No site participation required.** We score any domain from public data. Sites don't need to register, host files, or add scripts.
 5. **Registration is a data collection event.** Not just domain proof. Collects business name, EIN/VAT, address, phone, social. Each verified field earns points independently. Public/private data separation.
@@ -238,8 +238,8 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 
 1. **Registry scaling to 100K (in progress 2026-04-17)** -- Seed crawl running on burst droplet (165.227.26.56, 4GB, $24/mo hourly-billed). `crawl_seed.py --fast --workers 12 --resume` processing Tranco top-100K. As of 2026-04-17 16:00 UTC: ~4,600 domains checkpointed, ~2,578 in burst DB, 40% success rate (expected, Tranco includes infrastructure/CDN), ETA ~6 days. After completion: run `merge_db.py` to merge burst DB into production, run `rescore.py` for v1.3, destroy burst droplet. Daily re-crawl batch size should increase from 200 to 1,500 once registry exceeds 50K.
 2. **Registration flow** -- LIVE. Structured data collection, per-field scoring, domain verification (DNS/HTTP), cross-referencing (WHOIS, SSL cert, phone, social). Registration page at /register.html. Cache invalidated on successful verify so new score picks up registration bonus immediately.
-3. **Python SDK** -- BUILT at sdk/python/. opentrusttoken package with sync/async client, LangChain tool, CrewAI tool. Not published to PyPI yet.
-4. **TypeScript SDK** -- BUILT at sdk/typescript/. @opentrusttoken/sdk with full types, native fetch. Not published to npm yet.
+3. **Python SDK** -- BUILT at sdk/python/. opentrustseal package with sync/async client, LangChain tool, CrewAI tool. Not published to PyPI yet.
+4. **TypeScript SDK** -- BUILT at sdk/typescript/. @opentrustseal/sdk with full types, native fetch. Not published to npm yet.
 5. **Site owner dashboard** -- LIVE at /dashboard.html. Score hero, signal breakdown bars, jurisdiction profile, grouped checklist, registration status with per-field verification, score history chart with date labels and PROCEED threshold line. Dashboard API endpoint at /v1/check/{domain}/dashboard returns current check + history + registration data.
 6. **Phase 1 re-weighting (shipped 2026-04-13)** -- Content-unscorable sites drop content weight and renormalize remaining signals. Cap at 70 when no identity anchor, otherwise let the score flow.
 7. **Phase 2 crawler (shipped 2026-04-13)** -- Second droplet running Playwright behind FastAPI fetch service on private VPC. Used as tier 2 in the escalation ladder.
@@ -251,10 +251,10 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 13. **KYC infrastructure** -- funded by investor, launches after registration is live
 14. **Infrastructure domain scoring** -- current category detection is basic (domain name patterns + 404 fallback). Needs deeper work: parent company linkage (cloudfront.net -> Amazon), x402/MPP endpoint detection, API-specific checklist items.
 15. **Calibration dataset** -- every signed bundle has a check_id. Plan: collect outcome feedback from registered merchants and API consumers (via /v1/feedback endpoint, not built yet) to retroactively backtest scores against real fraud/chargeback outcomes. Over 6-12 months this becomes the real moat.
-16. **DMARC aggregate report parser** -- daily reports arriving at alu@opentrusttoken.com from 2026-04-13 forward (DMARC p=quarantine enforcement enabled). Simple parser + dashboard next time we touch email infra.
+16. **DMARC aggregate report parser** -- daily reports arriving at alu@opentrustseal.com from 2026-04-13 forward (DMARC p=quarantine enforcement enabled). Simple parser + dashboard next time we touch email infra.
 17. **Task #20 content body cap (SHIPPED 2026-04-17)** -- Raised from 300KB to 2MB in content_check.py. Costco content score jumped 10 to 55. Crateandbarrel and other large-homepage retailers now fully parsed.
 18. **Task #24 weak-content escalation (SHIPPED 2026-04-17)** -- content_check.py now detects SPA shells (<10KB body with no footer keywords) and escalates to probe/Playwright tiers instead of returning the sparse response as "success." Handles the costco/nordstrom/lowes pattern.
-19. **Reputation collectors fixed (2026-04-16/17)** -- Spamhaus DQS key (`pfg5oc35...`) wired via `/etc/opentrusttoken/spamhaus.env`, queries routed to `dbl.dq.spamhaus.net`. All 4 sub-sources now live: Spamhaus DBL, SURBL, URLhaus, Google Safe Browsing. python-whois stderr noise suppressed via `app/whois_util.py` shared wrapper across all 4 call sites.
+19. **Reputation collectors fixed (2026-04-16/17)** -- Spamhaus DQS key (`pfg5oc35...`) wired via `/etc/opentrustseal/spamhaus.env`, queries routed to `dbl.dq.spamhaus.net`. All 4 sub-sources now live: Spamhaus DBL, SURBL, URLhaus, Google Safe Browsing. python-whois stderr noise suppressed via `app/whois_util.py` shared wrapper across all 4 call sites.
 20. **v1.3 batch rescore (SHIPPED 2026-04-15)** -- All 1,117 domains rescored from raw_signals using v1.3 anchor logic. Amazon 67 to 75, Google 73 to 82. `rescore.py` now has `--dry-run` flag. rescore.py also updated with v1.3 identity buckets, `_tranco_rank` attribute stashing, and `well_known_brand` kwarg passthrough.
 21. **Ghost cron fixed (SHIPPED 2026-04-15)** -- `crawl_daily.sh` restored in `server/scripts/`, runs at 03:00 UTC via ott crontab. Heartbeat JSON exposed at `/stats.daily_crawl` with ok/stale/dead status. Old ghost entry cleaned up by `install-cron.sh`.
 22. **Dataset export script (BUILT 2026-04-17)** -- `server/export_dataset.py` exports CSV + JSON + SHA-256 manifest. Tested on 1,228 domains. Ready to run on the full 100K post-merge.
@@ -275,10 +275,10 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 - **Task #24 (NEW): Escalate on weak tier 1 content.** Current escalation triggers only on transient tier 1 errors (timeouts, TCP resets, 4xx/5xx). Sites like costco, nordstrom, and most modern SPA storefronts return 200 with a sparse client-rendered shell (body under 5KB, no footer yet, content rendered by JS post-load). Tier 1 sees the 200 and returns it as "success", so tier 2 Playwright never runs, the probe never runs, and the site scores low on content despite being trivially fetchable via the Playwright tier. Fix: after tier 1 returns 200, compute a quick content-signal estimate on the body. If the estimate is below a threshold (e.g. no footer-shaped links, body < 5KB), treat it as weak and escalate through tiers 1.5 → 2 → 3 → 4 → 5 the same way a transient error would. The correct escalation triggers on "missing value" as much as "transport error". Expected 2-3 hours of work in content_check._fetch_homepage.
 
 - **Task #25 (NEW): Residential variant of tier 1.5 probe integrated into the /fetch service on the Mac Air.** Simpler alternative to Task #23 if we decide the Mac Air should own probing: teach `crawler/fetch_service.py` to accept a `probe_mode=true` parameter that short-circuits the Playwright render and just returns the raw response from a direct httpx fetch (with the Mac's residential egress). That keeps the probe cheap (no Playwright overhead) while using the residential IP. One afternoon of Mac crawler work plus a matching tier in fetch_escalation. Decide between Task #23 (proxy existing API-box probe through Mac) and Task #25 (serve the probe from the Mac directly) based on which feels cleaner operationally. My pick: Task #25 because the Mac already owns "residential fetches as a service", and making the Mac the single residential egress point is tidier than proxying.
-- **Dathorn domain SPF/DMARC lockdown** -- only scosi.com and opentrusttoken.com done. Allen has other domains at dathorn that need the same treatment. Blocked on: list of domains + per-domain cPanel creds OR reseller WHM API token.
+- **Dathorn domain SPF/DMARC lockdown** -- only scosi.com and opentrustseal.com done. Allen has other domains at dathorn that need the same treatment. Blocked on: list of domains + per-domain cPanel creds OR reseller WHM API token.
 - **Nordstrom-style content detection weakness** -- hamburger-menu sites lazy-load their privacy/terms links, regex doesn't catch them. Playwright wait-for-selector or scroll-then-parse would help.
 - **Task #26 (NEW): JS-rendered footer escalation.** Lowes.com and similar React-heavy sites return 200 with a large body (500KB+) but zero "privacy" keyword in the server-rendered HTML -- the footer is injected by client-side JS. The current weak-content check (Task #24) doesn't trigger because the body is >10KB. Fix: if the parser finds zero legal links AND the body is >50KB (clearly a real page, not a stub), trigger a second-pass escalation to tier 2 Playwright. Expected 2-3 hours. Lower priority than Tasks #23/25 because the daily re-crawler with Playwright enabled handles this naturally.
-- **Task #27 (NEW): GitHub private repo for OTT source code.** Created 2026-04-17 at `bonedoc911/opentrusttoken` (private). Load server code, crawler code, SDKs, specs, docs. Will open-source when ready. Enables version control, PR workflow, and CI/CD pipeline.
+- **Task #27 (NEW): GitHub private repo for OTT source code.** Created 2026-04-17 at `bonedoc911/opentrustseal` (private). Load server code, crawler code, SDKs, specs, docs. Will open-source when ready. Enables version control, PR workflow, and CI/CD pipeline.
 
 **Already done (not pending):**
 - `crawl_daily.sh` ghost cron on VPS -- fixed 2026-04-15, heartbeat at `/stats.daily_crawl`
@@ -296,13 +296,13 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 
 ## Network / Mail Infrastructure
 
-- opentrusttoken.com -- A record -> 206.189.65.177 (VPS)
-- www.opentrusttoken.com -- A record -> 206.189.65.177
-- api.opentrusttoken.com -- A record -> 206.189.65.177
-- mail.opentrusttoken.com -- A record -> 96.31.72.33 (dathorn cpanel83.gzo.com)
-- MX opentrusttoken.com -- 0 mail.opentrusttoken.com. (points to dathorn mail server)
+- opentrustseal.com -- A record -> 206.189.65.177 (VPS)
+- www.opentrustseal.com -- A record -> 206.189.65.177
+- api.opentrustseal.com -- A record -> 206.189.65.177
+- mail.opentrustseal.com -- A record -> 96.31.72.33 (dathorn cpanel83.gzo.com)
+- MX opentrustseal.com -- 0 mail.opentrustseal.com. (points to dathorn mail server)
 - SPF: `v=spf1 +mx +ip4:96.31.72.73 include:spf.gzo.com ~all` (tightened 2026-04-13; dropped `+a`)
-- DMARC: `v=DMARC1; p=quarantine; rua=mailto:alu@opentrusttoken.com; sp=quarantine; pct=100; fo=1` (enforcement enabled 2026-04-13)
+- DMARC: `v=DMARC1; p=quarantine; rua=mailto:alu@opentrustseal.com; sp=quarantine; pct=100; fo=1` (enforcement enabled 2026-04-13)
 - DKIM: default._domainkey (dathorn auto key, in zone)
 - DNS managed at dathorn cPanel (nameservers ns1.gzo.com / ns2.gzo.com, UAPI via https://cpanel83.gzo.com:2083)
 
@@ -315,10 +315,10 @@ cPanel upload script: deploy/cpanel-upload.py (supports `scosi` and `dathorn` pr
 
 **OpenTrustSeal, Inc.** -- California C-Corp, filed 2026-04-17. 18575 Gale Ave Ste 278, City of Industry, CA 91748.
 - Domain: opentrustseal.com (Cloudflare DNS, email routing to alu@scosi.com)
-- API: api.opentrustseal.com (SSL via certbot, same VPS as opentrusttoken.com)
+- API: api.opentrustseal.com (SSL via certbot, same VPS as opentrustseal.com)
 - GitHub: github.com/OpenTrustSeal (org, private repo + public status page)
 - Email: alu@opentrustseal.com
-- Rebrand in progress: code rename from opentrusttoken/OTT to opentrustseal/OTS scheduled after 100K seed completes. Both domains serve the same API simultaneously.
+- Rebrand in progress: code rename from opentrustseal/OTT to opentrustseal/OTS scheduled after 100K seed completes. Both domains serve the same API simultaneously.
 
 ## Investor Positioning (updated 2026-04-13)
 

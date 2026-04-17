@@ -30,7 +30,7 @@ def _load_env_file(path: str) -> dict:
     return env
 
 
-_SPAMHAUS_ENV = _load_env_file("/etc/opentrusttoken/spamhaus.env")
+_SPAMHAUS_ENV = _load_env_file("/etc/opentrustseal/spamhaus.env")
 SPAMHAUS_DQS_KEY = _SPAMHAUS_ENV.get("SPAMHAUS_DQS_KEY") or os.environ.get("SPAMHAUS_DQS_KEY", "")
 
 
@@ -102,7 +102,7 @@ async def _check_safe_browsing(domain: str) -> dict:
 
     url = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={api_key}"
     payload = {
-        "client": {"clientId": "opentrusttoken", "clientVersion": "0.2.0"},
+        "client": {"clientId": "opentrustseal", "clientVersion": "0.2.0"},
         "threatInfo": {
             "threatTypes": [
                 "MALWARE",

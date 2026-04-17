@@ -190,7 +190,7 @@ async def _run_check_inner(domain: str) -> CheckResponse:
     contact_on_site = getattr(content_result, "contact_info", False)
     ssl_subject_org = getattr(ssl_result, "_subject_org", "")
 
-    # Fetch page body for schema.org check + check for .well-known/ott.json
+    # Fetch page body for schema.org check + check for .well-known/ots.json
     page_body = ""
     has_ott_file = False
     try:
@@ -200,7 +200,7 @@ async def _run_check_inner(domain: str) -> CheckResponse:
             if resp.status_code < 400:
                 page_body = resp.text[:100_000]
 
-            ott_resp = await client.get(f"https://{domain}/.well-known/ott.json")
+            ott_resp = await client.get(f"https://{domain}/.well-known/ots.json")
             if ott_resp.status_code == 200:
                 try:
                     ott_data = ott_resp.json()
@@ -324,12 +324,18 @@ async def _run_check_inner(domain: str) -> CheckResponse:
     # floor and final-score floor inside compute_score.
     well_known = scoring.is_well_known_brand(signals, domain_age_days)
 
+    # v1.4 consensus tier: top-100 Tranco + 10-year domain age raises
+    # the identity ceiling from 55 to 75, spreading top brands above
+    # the 75 anchor floor into the 80-90 range.
+    consensus = scoring.is_consensus_tier(signals, domain_age_days)
+
     # Compute score and recommendation
     trust_score = scoring.compute_score(
         signals, is_registered=registered, domain=domain,
         registration_score=reg_verification_score,
         content_scorable=not content_unscorable,
         well_known_brand=well_known,
+        consensus_tier=consensus,
     )
 
     # Monitoring alerts from signal analysis

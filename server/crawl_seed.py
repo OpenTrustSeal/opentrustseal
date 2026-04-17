@@ -38,8 +38,8 @@ from app.database import init_db, store_check, _get_conn
 from app.signing import ensure_keys
 
 
-CHECKPOINT_FILE = Path(os.environ.get("OTT_DATA_DIR", "./data")) / ".seed-checkpoint.json"
-PROGRESS_FILE = Path(os.environ.get("OTT_DATA_DIR", "./data")) / ".seed-progress.json"
+CHECKPOINT_FILE = Path(os.environ.get("OTS_DATA_DIR", "./data")) / ".seed-checkpoint.json"
+PROGRESS_FILE = Path(os.environ.get("OTS_DATA_DIR", "./data")) / ".seed-progress.json"
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +48,7 @@ PROGRESS_FILE = Path(os.environ.get("OTT_DATA_DIR", "./data")) / ".seed-progress
 
 def get_tranco_top(n: int) -> list[str]:
     """Return the top N domains from the Tranco CSV."""
-    data_dir = Path(os.environ.get("OTT_DATA_DIR", "./data"))
+    data_dir = Path(os.environ.get("OTS_DATA_DIR", "./data"))
     tranco_file = data_dir / "tranco.csv"
     if not tranco_file.exists():
         print(f"FATAL: Tranco list not found at {tranco_file}", flush=True)
@@ -266,9 +266,9 @@ async def main() -> int:
         # module may already be loaded (crawl_seed imports app.pipeline
         # which imports fetch_escalation), we also patch the module vars
         # directly.
-        os.environ["OTT_CRAWLER_URL"] = ""
-        os.environ["OTT_CRAWLER_SECRET"] = ""
-        os.environ["OTT_MACBOOK_URL"] = ""
+        os.environ["OTS_CRAWLER_URL"] = ""
+        os.environ["OTS_CRAWLER_SECRET"] = ""
+        os.environ["OTS_MACBOOK_URL"] = ""
         try:
             from app import fetch_escalation as fe
             fe.CRAWLER_ENABLED = False

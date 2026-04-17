@@ -12,7 +12,7 @@ import nacl.signing
 import nacl.encoding
 
 
-KEY_DIR = Path(os.environ.get("OTT_KEY_DIR", "./keys"))
+KEY_DIR = Path(os.environ.get("OTS_KEY_DIR", "./keys"))
 PRIVATE_KEY_FILE = KEY_DIR / "signing.key"
 PUBLIC_KEY_FILE = KEY_DIR / "signing.pub"
 

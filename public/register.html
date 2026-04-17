@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register Your Domain - OpenTrustToken</title>
-<link rel="icon" type="image/png" href="/ottlogo.png">
+<title>Register Your Domain - OpenTrustSeal</title>
+<link rel="icon" type="image/png" href="/otslogo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -110,7 +110,7 @@ h3{font-size:1rem;font-weight:600;margin-bottom:0.25rem}
 
 <nav class="nav">
 <div class="nav-inner">
-<a href="/" class="nav-brand"><img src="/ottlogo.png" alt="OpenTrustToken"></a>
+<a href="/" class="nav-brand"><img src="/otslogo.png" alt="OpenTrustSeal"></a>
 <a href="/" style="font-size:0.85rem;color:var(--text-light)">Back to home</a>
 </div>
 </nav>
@@ -268,7 +268,7 @@ h3{font-size:1rem;font-weight:600;margin-bottom:0.25rem}
 (function(){
 'use strict';
 
-var API = 'https://api.opentrusttoken.com';
+var API = 'https://api.opentrustseal.com';
 var form = document.getElementById('reg-form');
 var verifyPanel = document.getElementById('verify-panel');
 var verifyBtn = document.getElementById('verify-btn');
@@ -373,7 +373,7 @@ verifyBtn.addEventListener('click', function(){
 
       var html = '<div class="result-card">';
       html += '<h2>Domain verified</h2>';
-      html += '<p>' + currentDomain + ' is now registered with OpenTrustToken. Your verification score: <strong>+' + vs + ' points</strong></p>';
+      html += '<p>' + currentDomain + ' is now registered with OpenTrustSeal. Your verification score: <strong>+' + vs + ' points</strong></p>';
       html += '</div>';
 
       html += '<div class="score-impact">';
@@ -389,7 +389,7 @@ verifyBtn.addEventListener('click', function(){
       html += impactRow('Business registry match', profile.businessRegistryMatch, 5);
       html += '</div>';
 
-      html += '<p style="margin-top:1rem;font-size:0.9rem;color:var(--text-light)">Check your updated score: <a href="/?check=' + currentDomain + '">opentrusttoken.com</a></p>';
+      html += '<p style="margin-top:1rem;font-size:0.9rem;color:var(--text-light)">Check your updated score: <a href="/?check=' + currentDomain + '">opentrustseal.com</a></p>';
 
       finalDiv.innerHTML = html;
     } else {

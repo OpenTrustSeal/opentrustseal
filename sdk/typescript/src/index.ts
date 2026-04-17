@@ -1,15 +1,15 @@
 /**
- * OpenTrustToken TypeScript SDK
+ * OpenTrustSeal TypeScript SDK
  *
  * Trust verification for AI agent commerce.
  *
  * Quick start:
- *   import { check } from '@opentrusttoken/sdk';
+ *   import { check } from '@opentrustseal/sdk';
  *   const result = await check('merchant.com');
  *   if (result.recommendation === 'DENY') throw new Error(result.reasoning);
  */
 
-const DEFAULT_BASE_URL = 'https://api.opentrusttoken.com';
+const DEFAULT_BASE_URL = 'https://api.opentrustseal.com';
 
 export interface Signal {
   score: number;
@@ -103,7 +103,7 @@ export class OTTClient {
   constructor(options: OTTClientOptions = {}) {
     this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '');
     this.timeout = options.timeout || 30000;
-    this.headers = { 'User-Agent': 'opentrusttoken-js/0.1.0' };
+    this.headers = { 'User-Agent': 'opentrustseal-js/0.1.0' };
     if (options.apiKey) {
       this.headers['Authorization'] = `Bearer ${options.apiKey}`;
     }

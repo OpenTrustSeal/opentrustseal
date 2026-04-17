@@ -1,4 +1,4 @@
-# OpenTrustToken System Architecture
+# OpenTrustSeal System Architecture
 
 **Version:** 0.2.0-draft
 **Date:** 2026-04-10
@@ -64,7 +64,7 @@ The full architecture below is the scaling roadmap. For v1, build only this:
                     │                        │                        │
            ┌────────▼────────┐    ┌─────────▼─────────┐    ┌────────▼────────┐
            │  API Gateway    │    │  Static Token CDN  │    │  Dashboard UI   │
-           │  (rate limit,   │    │  (cached ott.json  │    │  (site owner    │
+           │  (rate limit,   │    │  (cached ots.json  │    │  (site owner    │
            │   auth, routing)│    │   files)           │    │   portal)       │
            └────────┬────────┘    └───────────────────┘    └────────┬────────┘
                     │                                                │
@@ -107,7 +107,7 @@ The full architecture below is the scaling roadmap. For v1, build only this:
 
 **Scaling notes:**
 - Cloudflare or Fastly as primary CDN
-- Static token files (ott.json) cached at edge with TTL matching token expiry
+- Static token files (ots.json) cached at edge with TTL matching token expiry
 - API responses cached for 60s at edge (configurable per endpoint)
 - At 10K domains: single CDN plan handles this
 - At 100K domains: still single CDN, cache hit ratio climbs (good)
@@ -388,7 +388,7 @@ Signing Service (triggered by score change)
 Cache + CDN update
   |-> Write to Redis
   |-> Purge CDN cache for domain
-  |-> Token available at /.well-known/ott.json (via CDN proxy)
+  |-> Token available at /.well-known/ots.json (via CDN proxy)
 ```
 
 ## 5. Data Flow: KYC Verification Upgrade (Future)

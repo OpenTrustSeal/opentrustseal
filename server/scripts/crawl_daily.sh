@@ -2,9 +2,9 @@
 # Daily re-crawl wrapper. Called by cron. Activates the venv, runs the
 # Python re-crawler, writes a dated log, prunes old logs.
 #
-# Expects to live at /opt/opentrusttoken/scripts/crawl_daily.sh on the VPS.
+# Expects to live at /opt/opentrustseal/scripts/crawl_daily.sh on the VPS.
 # Cron entry (run as the ott user):
-#   0 3 * * * /opt/opentrusttoken/scripts/crawl_daily.sh >> /opt/opentrusttoken/logs/crawl-cron.log 2>&1
+#   0 3 * * * /opt/opentrustseal/scripts/crawl_daily.sh >> /opt/opentrustseal/logs/crawl-cron.log 2>&1
 #
 # The daily Python script writes the heartbeat JSON. This wrapper's exit
 # code mirrors the Python script so the cron line's output signals whether
@@ -12,7 +12,7 @@
 
 set -u
 
-APP_DIR="/opt/opentrusttoken"
+APP_DIR="/opt/opentrustseal"
 VENV="${APP_DIR}/venv"
 LOG_DIR="${APP_DIR}/logs"
 DATA_DIR="${APP_DIR}/data"
@@ -34,7 +34,7 @@ fi
 # shellcheck disable=SC1091
 . "${VENV}/bin/activate"
 
-export OTT_DATA_DIR="${DATA_DIR}"
+export OTS_DATA_DIR="${DATA_DIR}"
 
 cd "${APP_DIR}"
 

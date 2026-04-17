@@ -25,7 +25,7 @@ HEARTBEAT_FILENAME = ".last-daily-crawl.json"
 
 
 def _heartbeat_path() -> Path:
-    return Path(os.environ.get("OTT_DATA_DIR", "./data")) / HEARTBEAT_FILENAME
+    return Path(os.environ.get("OTS_DATA_DIR", "./data")) / HEARTBEAT_FILENAME
 
 
 def _parse_iso(s: str | None) -> datetime | None:

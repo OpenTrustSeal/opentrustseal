@@ -3,13 +3,13 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "opentrusttoken"
+name = "opentrustseal"
 version = "0.1.0"
 description = "Trust verification for AI agent commerce"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-authors = [{name = "OpenTrustToken", email = "dev@opentrusttoken.com"}]
+authors = [{name = "OpenTrustSeal", email = "dev@opentrustseal.com"}]
 keywords = ["ai", "agents", "trust", "verification", "payments", "commerce"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -28,6 +28,6 @@ crewai = ["crewai>=0.1.0"]
 async = ["httpx[http2]>=0.24.0"]
 
 [project.urls]
-Homepage = "https://opentrusttoken.com"
-Documentation = "https://api.opentrusttoken.com/docs"
-Repository = "https://github.com/opentrusttoken/python-sdk"
+Homepage = "https://opentrustseal.com"
+Documentation = "https://api.opentrustseal.com/docs"
+Repository = "https://github.com/opentrustseal/python-sdk"

@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import contextmanager
 
-DB_PATH = Path(os.environ.get("OTT_DB_PATH", "./data/ott.db"))
+DB_PATH = Path(os.environ.get("OTS_DB_PATH", "./data/ots.db"))
 
 
 def init_db() -> None:
@@ -135,7 +135,7 @@ def init_db() -> None:
                     )
                     conn.execute(
                         "INSERT OR REPLACE INTO scored_results (domain, response_json, trust_score, recommendation, scoring_model, checked_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (row[0], row[1], row[2], row[3], "ott-v1-weights", row[4], row[5]),
+                        (row[0], row[1], row[2], row[3], "ots-v1-weights", row[4], row[5]),
                     )
                 conn.execute("INSERT INTO _migration_done VALUES (1)")
                 conn.execute("DROP TABLE checks")

@@ -3,7 +3,7 @@
 
 Usage:
     python3 merge_db.py /path/to/source.db              # Merge into default DB
-    python3 merge_db.py /path/to/source.db --target ./data/ott.db  # Explicit target
+    python3 merge_db.py /path/to/source.db --target ./data/ots.db  # Explicit target
     python3 merge_db.py /path/to/source.db --dry-run     # Show counts without merging
 
 Merges domains, raw_signals, scored_results, and score_history from the
@@ -133,7 +133,7 @@ def main():
         sys.exit(1)
 
     source = sys.argv[1]
-    target = str(Path(os.environ.get("OTT_DB_PATH", "./data/ott.db")))
+    target = str(Path(os.environ.get("OTS_DB_PATH", "./data/ots.db")))
     dry_run = "--dry-run" in sys.argv
 
     for i, arg in enumerate(sys.argv):

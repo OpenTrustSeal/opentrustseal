@@ -2,7 +2,7 @@
 
 The API box tries direct httpx first (fast, cheap). On transient failure --
 timeout, TCP reset, 403/429/5xx -- it escalates to the crawler service
-running on ott-crawler-1 over the private VPC. The crawler runs real
+running on ots-crawler-1 over the private VPC. The crawler runs real
 headless Chromium, which bypasses sites that fingerprint httpx but doesn't
 help with IP-AS blocks. Tier 3 (Playwright-via-residential-proxy) is wired
 but gated behind a feature flag that stays off until proxy creds land.
@@ -41,12 +41,12 @@ def _load_env_file(path: str) -> dict:
     return env
 
 
-_CRAWLER_ENV = _load_env_file("/etc/opentrusttoken/crawler.env")
-_DECODO_ENV = _load_env_file("/etc/opentrusttoken/decodo.env")
-_MACBOOK_ENV = _load_env_file("/etc/opentrusttoken/macbook.env")
+_CRAWLER_ENV = _load_env_file("/etc/opentrustseal/crawler.env")
+_DECODO_ENV = _load_env_file("/etc/opentrustseal/decodo.env")
+_MACBOOK_ENV = _load_env_file("/etc/opentrustseal/macbook.env")
 
-CRAWLER_URL = _CRAWLER_ENV.get("CRAWLER_URL") or os.environ.get("OTT_CRAWLER_URL", "")
-CRAWLER_SECRET = _CRAWLER_ENV.get("CRAWLER_SHARED_SECRET") or os.environ.get("OTT_CRAWLER_SECRET", "")
+CRAWLER_URL = _CRAWLER_ENV.get("CRAWLER_URL") or os.environ.get("OTS_CRAWLER_URL", "")
+CRAWLER_SECRET = _CRAWLER_ENV.get("CRAWLER_SHARED_SECRET") or os.environ.get("OTS_CRAWLER_SECRET", "")
 CRAWLER_ENABLED = bool(CRAWLER_URL and CRAWLER_SECRET)
 
 DECODO_HOST = _DECODO_ENV.get("DECODO_HOST", "")
@@ -75,11 +75,11 @@ MACBOOK_ENABLED = bool(MACBOOK_URL and MACBOOK_SECRET)
 # by Wayback, so security-header signals will read as zero for
 # wayback-sourced content -- see known follow-up in task backlog.
 #
-# Feature-flagged via OTT_ENABLE_WAYBACK_TIER for the initial rollout
+# Feature-flagged via OTS_ENABLE_WAYBACK_TIER for the initial rollout
 # so we can compare wayback-sourced signals against live-fetched signals
 # for domains where both work before making this a default tier.
-WAYBACK_ENABLED = os.environ.get("OTT_ENABLE_WAYBACK_TIER", "").lower() in ("1", "true", "yes", "on")
-WAYBACK_MAX_AGE_DAYS = int(os.environ.get("OTT_WAYBACK_MAX_AGE_DAYS", "60"))
+WAYBACK_ENABLED = os.environ.get("OTS_ENABLE_WAYBACK_TIER", "").lower() in ("1", "true", "yes", "on")
+WAYBACK_MAX_AGE_DAYS = int(os.environ.get("OTS_WAYBACK_MAX_AGE_DAYS", "60"))
 
 # Tier 6 (protocol probe): direct httpx to a deliberately-404 protocol-
 # standard path on the target origin. Most sites serve a static 404 error
@@ -99,8 +99,8 @@ WAYBACK_MAX_AGE_DAYS = int(os.environ.get("OTT_WAYBACK_MAX_AGE_DAYS", "60"))
 # content_check because it's as cheap as tier 1 (one direct httpx call)
 # and supersedes the need for Playwright escalation when it works. The
 # tier numbering reflects order-of-implementation, not fetch-ladder order.
-PROBE_ENABLED = os.environ.get("OTT_ENABLE_PROBE_TIER", "").lower() in ("1", "true", "yes", "on")
-PROBE_PATH = os.environ.get("OTT_PROBE_PATH", "/.well-known/security.txt")
+PROBE_ENABLED = os.environ.get("OTS_ENABLE_PROBE_TIER", "").lower() in ("1", "true", "yes", "on")
+PROBE_PATH = os.environ.get("OTS_PROBE_PATH", "/.well-known/security.txt")
 
 
 class _CircuitBreaker:
@@ -370,7 +370,7 @@ async def fetch_via_wayback(url: str, timeout_s: float = 25.0) -> Optional[Crawl
       brands but would be too stale for a new/changing site. Tier 5
       should only fire after tiers 1-4 have tried the live path.
 
-    The `x-ott-source` synthetic header on the returned shim tags the
+    The `x-ots-source` synthetic header on the returned shim tags the
     snapshot timestamp so downstream consumers (raw_signals, dashboards)
     can see where the data came from.
     """
@@ -434,8 +434,8 @@ async def fetch_via_wayback(url: str, timeout_s: float = 25.0) -> Optional[Crawl
             "status": 200,
             "body": snap_resp.text,
             "headers": {
-                "x-ott-source": f"wayback-{timestamp}",
-                "x-ott-snapshot-age-days": str((datetime.now(timezone.utc) - datetime.strptime(timestamp[:8], "%Y%m%d").replace(tzinfo=timezone.utc)).days),
+                "x-ots-source": f"wayback-{timestamp}",
+                "x-ots-snapshot-age-days": str((datetime.now(timezone.utc) - datetime.strptime(timestamp[:8], "%Y%m%d").replace(tzinfo=timezone.utc)).days),
                 "content-type": snap_resp.headers.get("content-type", "text/html"),
             },
             "final_url": original_url,
@@ -471,8 +471,8 @@ async def fetch_via_protocol_probe(url: str, timeout_s: float = 15.0) -> Optiona
     advantage over tier 5 (Wayback) which strips response headers.
 
     The returned shim tags the source as `probe-security-txt-<status>`
-    in the x-ott-source header, and preserves the original HTTP status
-    in x-ott-probe-status, so downstream consumers can distinguish a
+    in the x-ots-source header, and preserves the original HTTP status
+    in x-ots-probe-status, so downstream consumers can distinguish a
     real-200 from a 404-shell path.
     """
     if not PROBE_ENABLED:
@@ -553,14 +553,14 @@ async def fetch_via_protocol_probe(url: str, timeout_s: float = 15.0) -> Optiona
         payload = {
             # Force status 200 so content_check treats the shim as a
             # successful fetch. The real HTTP status is preserved in
-            # x-ott-probe-status for transparency.
+            # x-ots-probe-status for transparency.
             "status": 200,
             "body": body,
             "headers": {
                 **{str(k): str(v) for k, v in r.headers.items()},
-                "x-ott-source": source_tag,
-                "x-ott-probe-path": PROBE_PATH,
-                "x-ott-probe-status": str(original_status),
+                "x-ots-source": source_tag,
+                "x-ots-probe-path": PROBE_PATH,
+                "x-ots-probe-status": str(original_status),
             },
             "final_url": str(r.url),
             "redirect_count": 0,

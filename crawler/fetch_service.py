@@ -1,4 +1,4 @@
-"""OpenTrustToken crawler fetch service.
+"""OpenTrustSeal crawler fetch service.
 
 Single-purpose Playwright wrapper. Listens on a private VPC address only,
 authenticated via shared secret, returns fetched homepage bodies + metadata

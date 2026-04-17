@@ -9,7 +9,7 @@ Usage: python3 multi_merchant.py
 import sys
 sys.path.insert(0, "../sdk/python")
 
-from opentrusttoken import OTTClient
+from opentrustseal import OTTClient
 
 
 def find_best_merchant():

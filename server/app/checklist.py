@@ -98,10 +98,10 @@ def generate_checklist(signals: SignalBundle, is_registered: bool = False) -> li
     # === Identity ===
     items.append({
         "category": "Identity",
-        "item": "Registered with OpenTrustToken",
+        "item": "Registered with OpenTrustSeal",
         "status": "pass" if is_registered else "available",
         "impact": "high",
-        "fix": "Register your domain at opentrusttoken.com/register.html to prove ownership and provide business details. Each verified field earns points (up to +30). Free registration.",
+        "fix": "Register your domain at opentrustseal.com/register.html to prove ownership and provide business details. Each verified field earns points (up to +30). Free registration.",
     })
 
     items.append({

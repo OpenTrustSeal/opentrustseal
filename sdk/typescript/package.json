@@ -1,5 +1,5 @@
 {
-  "name": "@opentrusttoken/sdk",
+  "name": "@opentrustseal/sdk",
   "version": "0.1.0",
   "description": "Trust verification for AI agent commerce",
   "main": "dist/index.js",

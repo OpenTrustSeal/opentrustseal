@@ -5,13 +5,13 @@ re-checks them via run_check(), updating raw_signals and scored_results.
 Writes a heartbeat JSON on completion so /stats can surface liveness.
 
 Usage:
-    python3 crawl_daily.py              # Re-crawl OTT_DAILY_BATCH (default 200)
+    python3 crawl_daily.py              # Re-crawl OTS_DAILY_BATCH (default 200)
     python3 crawl_daily.py --batch 500  # Override batch size
 
 Environment:
-    OTT_DAILY_BATCH     How many stalest domains to re-check per run (default 200)
-    OTT_DAILY_DELAY_MS  Delay between checks in ms (default 1000)
-    OTT_DATA_DIR        Data directory; heartbeat lives here (default ./data)
+    OTS_DAILY_BATCH     How many stalest domains to re-check per run (default 200)
+    OTS_DAILY_DELAY_MS  Delay between checks in ms (default 1000)
+    OTS_DATA_DIR        Data directory; heartbeat lives here (default ./data)
 """
 
 import asyncio
@@ -33,7 +33,7 @@ HEARTBEAT_FILENAME = ".last-daily-crawl.json"
 
 
 def data_dir() -> Path:
-    return Path(os.environ.get("OTT_DATA_DIR", "./data"))
+    return Path(os.environ.get("OTS_DATA_DIR", "./data"))
 
 
 def heartbeat_path() -> Path:
@@ -77,8 +77,8 @@ async def crawl_one(domain: str, idx: int, total: int) -> dict:
 
 
 async def main() -> int:
-    batch = int(os.environ.get("OTT_DAILY_BATCH", "200"))
-    delay_ms = int(os.environ.get("OTT_DAILY_DELAY_MS", "1000"))
+    batch = int(os.environ.get("OTS_DAILY_BATCH", "200"))
+    delay_ms = int(os.environ.get("OTS_DAILY_DELAY_MS", "1000"))
 
     # --batch N override
     if "--batch" in sys.argv:

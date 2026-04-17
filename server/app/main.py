@@ -1,4 +1,4 @@
-"""OpenTrustToken API Server.
+"""OpenTrustSeal API Server.
 
 Run with: uvicorn app.main:app --reload
 """
@@ -19,7 +19,7 @@ from .heartbeat import read_heartbeat
 API_VERSION = "0.2.0"
 
 app = FastAPI(
-    title="OpenTrustToken API",
+    title="OpenTrustSeal API",
     version=API_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -30,12 +30,12 @@ def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     schema = get_openapi(
-        title="OpenTrustToken API",
+        title="OpenTrustSeal API",
         version=API_VERSION,
         description="""
 ## Trust verification for AI agent commerce
 
-OpenTrustToken provides pre-transaction trust checks for AI agents. One API call returns a cryptographically signed evidence bundle with a trust score and actionable checklist.
+OpenTrustSeal provides pre-transaction trust checks for AI agents. One API call returns a cryptographically signed evidence bundle with a trust score and actionable checklist.
 
 ### Quick start
 
@@ -50,7 +50,7 @@ GET /v1/check/stripe.com
 - **Trust score** (0-100) computed from all signals
 - **Recommendation**: PROCEED (75+), CAUTION (40-74), DENY (0-39)
 - **Actionable checklist** showing what the site can improve
-- **Ed25519 signature** proving the result was issued by OpenTrustToken
+- **Ed25519 signature** proving the result was issued by OpenTrustSeal
 
 ### Authentication
 
@@ -58,20 +58,20 @@ Free tier requires no authentication. Rate limit: 60 requests/minute, 10,000/mon
 
 ### Scoring model
 
-Current model: `ott-v1.2-weights`. Weights: reputation 30%, identity 25%, content 17%, domain age 10%, SSL 10%, DNS 8%.
+Current model: `ots-v1.2-weights`. Weights: reputation 30%, identity 25%, content 17%, domain age 10%, SSL 10%, DNS 8%.
 
 The trust score is a computed summary of observable evidence. Every input is visible in the signals object. Agents can inspect individual signals or rely on the composite score.
 
 ### Links
 
-- [OpenTrustToken website](https://opentrusttoken.com)
+- [OpenTrustSeal website](https://opentrustseal.com)
 - [DID Document](/.well-known/did.json) (public signing key)
         """,
         routes=app.routes,
     )
     schema["info"]["x-logo"] = {
-        "url": "https://opentrusttoken.com/ottlogo.png",
-        "altText": "OpenTrustToken",
+        "url": "https://opentrustseal.com/otslogo.png",
+        "altText": "OpenTrustSeal",
     }
     app.openapi_schema = schema
     return schema
@@ -101,13 +101,13 @@ async def startup():
 async def root():
     """Returns basic API info and links."""
     return {
-        "name": "OpenTrustToken",
+        "name": "OpenTrustSeal",
         "version": API_VERSION,
         "description": "Trust verification for AI agent commerce",
         "endpoints": {
             "check": "/v1/check/{domain}",
             "request_check": "/v1/check/request",
-            "token": "/v1/token/{domain}/ott.json",
+            "token": "/v1/token/{domain}/ots.json",
             "did_document": "/.well-known/did.json",
             "docs": "/docs",
             "stats": "/stats",
@@ -121,21 +121,21 @@ async def did_document():
     """Returns the DID document containing the public Ed25519 signing key.
 
     Agents use this key to verify that trust tokens were signed by
-    OpenTrustToken and have not been tampered with.
+    OpenTrustSeal and have not been tampered with.
     """
     pub_key = get_public_key_multibase()
     return {
         "@context": "https://www.w3.org/ns/did/v1",
-        "id": "did:web:opentrusttoken.com",
+        "id": "did:web:opentrustseal.com",
         "verificationMethod": [
             {
-                "id": "did:web:opentrusttoken.com#signing-key-1",
+                "id": "did:web:opentrustseal.com#signing-key-1",
                 "type": "Ed25519VerificationKey2020",
-                "controller": "did:web:opentrusttoken.com",
+                "controller": "did:web:opentrustseal.com",
                 "publicKeyMultibase": pub_key,
             }
         ],
-        "assertionMethod": ["did:web:opentrusttoken.com#signing-key-1"],
+        "assertionMethod": ["did:web:opentrustseal.com#signing-key-1"],
     }
 
 

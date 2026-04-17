@@ -2,7 +2,7 @@
 # One-time installer for the daily re-crawl cron entry.
 #
 # Run on the API box as root:
-#   bash /opt/opentrusttoken/scripts/install-cron.sh
+#   bash /opt/opentrustseal/scripts/install-cron.sh
 #
 # Installs (or replaces) a single cron line in the ott user's crontab
 # that runs the daily crawler at 03:00 UTC. Idempotent: re-running removes
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 TAG="# ott:crawl_daily"
-LINE="0 3 * * * /opt/opentrusttoken/scripts/crawl_daily.sh >> /opt/opentrusttoken/logs/crawl-cron.log 2>&1 ${TAG}"
+LINE="0 3 * * * /opt/opentrustseal/scripts/crawl_daily.sh >> /opt/opentrustseal/logs/crawl-cron.log 2>&1 ${TAG}"
 USER_NAME="ott"
 
 if ! id -u "${USER_NAME}" >/dev/null 2>&1; then
@@ -19,8 +19,8 @@ if ! id -u "${USER_NAME}" >/dev/null 2>&1; then
     exit 1
 fi
 
-chmod +x /opt/opentrusttoken/scripts/crawl_daily.sh
-chmod +x /opt/opentrusttoken/scripts/crawl_daily.py
+chmod +x /opt/opentrustseal/scripts/crawl_daily.sh
+chmod +x /opt/opentrustseal/scripts/crawl_daily.py
 
 # Load existing crontab (empty if none), strip prior crawl_daily entries
 # (tagged OR untagged -- e.g. the original ghost entry at the old path),
@@ -40,4 +40,4 @@ echo "Installed cron entry for ${USER_NAME}:"
 crontab -u "${USER_NAME}" -l | grep "${TAG}"
 echo
 echo "First run will execute at 03:00 UTC."
-echo "To test immediately: sudo -u ${USER_NAME} /opt/opentrusttoken/scripts/crawl_daily.sh"
+echo "To test immediately: sudo -u ${USER_NAME} /opt/opentrustseal/scripts/crawl_daily.sh"
