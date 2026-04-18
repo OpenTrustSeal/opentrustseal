@@ -335,7 +335,7 @@ function renderDashboard(data, domain){
     barsHtml += '</div>';
   }
   if(anchorOnly){
-    barsHtml += '<div class="anchor-note"><strong>Anchor-only scoring.</strong> This domain is covered by the v1.3 brand anchor (top-Tranco rank, 5+ years old, clean reputation, valid SSL). Content fetch was blocked by the merchant\'s bot protection, but the brand anchor provides a compositional trust floor that does not require homepage content. Quarterly manual content captures are scheduled to backstop this.</div>';
+    barsHtml += '<div class="anchor-note"><strong>Anchor-backed scoring.</strong> This domain qualifies for the OpenTrustSeal brand anchor (top-Tranco rank, 5+ years old, clean reputation, valid SSL). Content fetch was blocked by the site\'s bot protection, but the brand anchor provides a compositional trust floor based on unfakeable long-term signals. Our six-tier fetch ladder (including Wayback Machine and protocol probes) continues to attempt content collection on each re-check.</div>';
   }
   document.getElementById('signal-bars').innerHTML = barsHtml;
 

@@ -51,6 +51,10 @@ class CheckResponse(BaseModel):
     checklist: list[ChecklistItem] = Field(default_factory=list)
     checklist_summary: ChecklistSummary = Field(alias="checklistSummary")
     signature: str
+    signature_key_id: str = Field(
+        default="did:web:opentrustseal.com#signing-key-1",
+        alias="signatureKeyId",
+    )
     issuer: str = "did:web:opentrustseal.com"
 
     model_config = {"populate_by_name": True}

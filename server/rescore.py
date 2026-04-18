@@ -250,6 +250,7 @@ def main():
             "checklist": cl,
             "checklistSummary": cl_summary,
             "signature": signature,
+            "signatureKeyId": "did:web:opentrustseal.com#signing-key-1",
             "issuer": "did:web:opentrustseal.com",
         }
         if not dry_run:
