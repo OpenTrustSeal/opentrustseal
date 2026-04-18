@@ -1,5 +1,6 @@
-"""Trust token response model matching the OTT protocol spec v0.2."""
+"""Trust token response model matching the OTS protocol spec v0.2."""
 
+import uuid
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
@@ -27,6 +28,10 @@ class ChecklistSummary(BaseModel):
 
 class CheckResponse(BaseModel):
     """Lightweight API response format (spec Section 10.1)."""
+    check_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        alias="checkId",
+    )
     domain: str
     checked_at: str = Field(alias="checkedAt")
     expires_at: str = Field(alias="expiresAt")

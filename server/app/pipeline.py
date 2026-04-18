@@ -12,6 +12,7 @@ from .models.signals import (
 from .models.token import CheckResponse, ChecklistSummary
 from . import scoring, signing
 from .checklist import generate_checklist, checklist_summary
+from .transparency import log_attestation
 from .database import (
     store_raw_signals, is_registered, store_score_snapshot,
     get_latest_raw_content, log_audit,
@@ -418,9 +419,11 @@ async def _run_check_inner(domain: str) -> CheckResponse:
 
     jurisdiction = detect_jurisdiction(domain, whois_country=whois_country)
 
-    return CheckResponse(
+    checked_at_str = now.isoformat(timespec="seconds") + "Z"
+
+    response = CheckResponse(
         domain=domain,
-        checkedAt=now.isoformat(timespec="seconds") + "Z",
+        checkedAt=checked_at_str,
         expiresAt=expires.isoformat(timespec="seconds") + "Z",
         signals=signals,
         flags=flags,
@@ -436,3 +439,22 @@ async def _run_check_inner(domain: str) -> CheckResponse:
         checklistSummary=ChecklistSummary(**cl_summary),
         signature=signature,
     )
+
+    # Write to the transparency log. Non-blocking: if the log write fails,
+    # the attestation is still returned to the caller. The log is an
+    # auditability layer, not a gate.
+    try:
+        log_attestation(
+            check_id=response.check_id,
+            domain=domain,
+            trust_score=trust_score,
+            recommendation=recommendation,
+            scoring_model=scoring.SCORING_MODEL,
+            checked_at=checked_at_str,
+            signature_key_id=response.signature_key_id,
+            signature=signature,
+        )
+    except Exception:
+        pass  # log failure must not block the attestation response
+
+    return response

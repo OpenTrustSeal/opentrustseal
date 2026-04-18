@@ -15,6 +15,7 @@ from .signing import ensure_keys, get_public_key_multibase
 from .database import init_db, get_stats
 from .fetch_escalation import stats as fetch_stats
 from .heartbeat import read_heartbeat
+from .transparency import init_transparency_log, get_log_for_domain, get_latest_entries, verify_chain
 
 API_VERSION = "0.2.0"
 
@@ -95,6 +96,7 @@ app.include_router(register_router)
 async def startup():
     ensure_keys()
     init_db()
+    init_transparency_log()
 
 
 @app.get("/", tags=["Meta"], summary="API information")
@@ -157,3 +159,35 @@ async def stats():
         "fetch": fetch_stats(),
         "daily_crawl": read_heartbeat(),
     }
+
+
+@app.get("/v1/log/{domain}", tags=["Transparency"], summary="Attestation log for a domain")
+async def log_domain(domain: str, limit: int = 100):
+    """Returns all transparency log entries for a domain, newest first.
+
+    Each entry includes a per-domain hash chain: the entry_hash of each
+    entry is referenced as previous_entry_hash by the next entry for the
+    same domain. An auditor can verify the chain is unbroken by computing
+    each entry's hash and confirming it matches the next entry's
+    previous_entry_hash.
+    """
+    entries = get_log_for_domain(domain, limit=limit)
+    return {"domain": domain, "entries": entries, "count": len(entries)}
+
+
+@app.get("/v1/log/{domain}/verify", tags=["Transparency"], summary="Verify hash chain for a domain")
+async def log_verify(domain: str):
+    """Verify the per-domain hash chain is intact.
+
+    Returns whether all entries for this domain form an unbroken chain.
+    If any entry was retroactively modified or deleted, the chain breaks
+    and the specific broken link is identified.
+    """
+    return verify_chain(domain)
+
+
+@app.get("/v1/log/latest/entries", tags=["Transparency"], summary="Latest attestation log entries")
+async def log_latest(limit: int = 50):
+    """Returns the N most recent log entries across all domains."""
+    entries = get_latest_entries(limit=limit)
+    return {"entries": entries, "count": len(entries)}
