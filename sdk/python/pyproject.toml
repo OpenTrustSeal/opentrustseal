@@ -9,7 +9,7 @@ description = "Trust verification for AI agent commerce"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-authors = [{name = "OpenTrustSeal", email = "dev@opentrustseal.com"}]
+authors = [{name = "OpenTrustSeal, Inc.", email = "alu@opentrustseal.com"}]
 keywords = ["ai", "agents", "trust", "verification", "payments", "commerce"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -30,4 +30,4 @@ async = ["httpx[http2]>=0.24.0"]
 [project.urls]
 Homepage = "https://opentrustseal.com"
 Documentation = "https://api.opentrustseal.com/docs"
-Repository = "https://github.com/opentrustseal/python-sdk"
+Repository = "https://github.com/OpenTrustSeal/opentrustseal"

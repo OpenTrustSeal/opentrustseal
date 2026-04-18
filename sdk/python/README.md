@@ -70,18 +70,18 @@ result = await async_check("merchant.com")
 ## With API Key
 
 ```python
-from opentrustseal import OTTClient
+from opentrustseal import OTSClient
 
-client = OTTClient(api_key="ott_live_...")
+client = OTSClient(api_key="ott_live_...")
 result = client.check("merchant.com")
 ```
 
 ## Check Multiple Domains
 
 ```python
-from opentrustseal import OTTClient
+from opentrustseal import OTSClient
 
-client = OTTClient()
+client = OTSClient()
 results = client.check_multiple(["site-a.com", "site-b.com", "site-c.com"])
 for r in results:
     print(f"{r.domain}: {r.trust_score} ({r.recommendation})")

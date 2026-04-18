@@ -7,15 +7,15 @@ DEFAULT_BASE_URL = "https://api.opentrustseal.com"
 DEFAULT_TIMEOUT = 30
 
 
-class OTTClient:
+class OTSClient:
     """OpenTrustSeal API client.
 
     Usage:
-        client = OTTClient()  # free tier, no key needed
+        client = OTSClient()  # free tier, no key needed
         result = client.check("merchant.com")
 
         # With API key (higher rate limits)
-        client = OTTClient(api_key="ott_live_...")
+        client = OTSClient(api_key="ots_live_...")
 
     Async usage:
         result = await client.async_check("merchant.com")
@@ -95,7 +95,7 @@ class OTTClient:
 
 
 # Module-level convenience functions using a default client
-_default_client = OTTClient()
+_default_client = OTSClient()
 
 
 def check(domain: str, refresh: bool = False) -> CheckResult:

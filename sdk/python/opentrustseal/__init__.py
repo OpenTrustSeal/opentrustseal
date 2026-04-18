@@ -13,19 +13,19 @@ Async:
     result = await async_check("merchant.com")
 
 Full client:
-    from opentrustseal import OTTClient
+    from opentrustseal import OTSClient
 
-    client = OTTClient(api_key="ott_...")  # optional, free tier needs no key
+    client = OTSClient(api_key="ots_...")  # optional, free tier needs no key
     result = client.check("merchant.com")
     print(result.trust_score, result.recommendation)
 """
 
-from .client import OTTClient, check, async_check
+from .client import OTSClient, check, async_check
 from .models import CheckResult, Signal, Jurisdiction, ChecklistItem
 
 __version__ = "0.1.0"
 __all__ = [
-    "OTTClient",
+    "OTSClient",
     "check",
     "async_check",
     "CheckResult",

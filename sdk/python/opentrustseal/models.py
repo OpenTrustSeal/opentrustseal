@@ -67,18 +67,22 @@ class CheckResult:
         result.jurisdiction.cross_border_risk -> "standard" | "elevated"
         result.site_category                 -> "consumer" | "infrastructure"
     """
+    check_id: str = ""
     domain: str = ""
     trust_score: int = 0
     recommendation: str = ""
     reasoning: str = ""
     scoring_model: str = ""
     site_category: str = "consumer"
+    brand_tier: str = "scored"  # "well_known" or "scored"
+    crawlability: str = "ok"   # "ok" or "blocked"
     flags: list = field(default_factory=list)
     signals: Signals = field(default_factory=Signals)
     jurisdiction: Jurisdiction = field(default_factory=Jurisdiction)
     checklist: list = field(default_factory=list)
     checklist_summary: dict = field(default_factory=dict)
     signature: str = ""
+    signature_key_id: str = ""
     issuer: str = ""
     checked_at: str = ""
     expires_at: str = ""
@@ -140,18 +144,22 @@ def _parse_response(data: dict) -> CheckResult:
     ]
 
     return CheckResult(
+        check_id=data.get("checkId", ""),
         domain=data.get("domain", ""),
         trust_score=data.get("trustScore", 0),
         recommendation=data.get("recommendation", ""),
         reasoning=data.get("reasoning", ""),
         scoring_model=data.get("scoringModel", ""),
         site_category=data.get("siteCategory", "consumer"),
+        brand_tier=data.get("brandTier", "scored"),
+        crawlability=data.get("crawlability", "ok"),
         flags=data.get("flags", []),
         signals=signals,
         jurisdiction=jurisdiction,
         checklist=checklist,
         checklist_summary=data.get("checklistSummary", {}),
         signature=data.get("signature", ""),
+        signature_key_id=data.get("signatureKeyId", ""),
         issuer=data.get("issuer", ""),
         checked_at=data.get("checkedAt", ""),
         expires_at=data.get("expiresAt", ""),
