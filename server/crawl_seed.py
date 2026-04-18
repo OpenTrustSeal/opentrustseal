@@ -160,7 +160,7 @@ async def worker(
                 # records completed domains, so skipped ones get retried
                 # on the next --resume run (or picked up by the daily
                 # re-crawler with full tier escalation enabled).
-                result = await asyncio.wait_for(run_check(domain), timeout=120.0)
+                result = await asyncio.wait_for(run_check(domain), timeout=60.0)
                 result_dict = result.model_dump(by_alias=True)
                 store_check(domain, result_dict)
                 elapsed = time.time() - start
