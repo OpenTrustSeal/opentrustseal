@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenTrustSeal - How It Works (scoring v1.3)</title>
+<title>OpenTrustSeal - How It Works (scoring v1.4)</title>
 <link rel="icon" type="image/png" href="/otsseal.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -183,8 +183,8 @@ footer img{height:36px;margin:0 auto 0.5rem;display:block}
 <div class="flow-step">
 <div class="flow-num">3</div>
 <div class="flow-body">
-<h3>Content fetch escalates through a four-tier ladder</h3>
-<p>Tier 1: direct httpx with realistic browser headers from the API box. Tier 2: real headless Chromium on a dedicated crawler droplet (playwright-stealth, pool of warm contexts). Tier 3: Playwright through Decodo rotating residential proxy (fresh residential IPs across Comcast, Verizon, T-Mobile, Charter). Tier 4 (rolling out): real Chrome on a physical Mac on residential ISP via Tailscale. Each tier has independent circuit breakers so a failure in one does not poison the others. Counters exposed at <code style="font-family:var(--mono);font-size:0.85rem">/stats.fetch</code> per tier.</p>
+<h3>Content fetch escalates through a six-tier ladder</h3>
+<p>Tier 1: direct httpx with realistic browser headers. Tier 1.5: protocol probe (fetches the 404 error shell, which contains footer links, bypassing bot protection). Tier 2: headless Chromium on a dedicated crawler box (playwright-stealth). Tier 3: Playwright through Decodo rotating residential proxy. Tier 4: real Chrome on residential ISP via Tailscale. Tier 5: Internet Archive Wayback Machine (archived snapshots). Each tier has independent circuit breakers. Counters exposed at <code style="font-family:var(--mono);font-size:0.85rem">/stats.fetch</code> per tier.</p>
 </div>
 </div>
 <div class="flow-line"></div>
@@ -222,7 +222,7 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <div class="container">
 <p class="label">Scoring Model</p>
 <h2>How trust scores are computed</h2>
-<p style="color:var(--text-light);margin-bottom:1rem">The score is a weighted average of six signal categories, with two anchors layered on top: <strong>content re-weighting</strong> when we cannot reach the homepage (content's 17% is dropped and the remaining five signals renormalize to sum to 100%), and the <strong>well-known brand anchor</strong> for unambiguously established sites. The model is versioned (current: <code style="font-family:var(--mono);font-size:0.85rem">ots-v1.3-weights</code>) and can be updated without re-crawling because raw signals are stored separately from scored results.</p>
+<p style="color:var(--text-light);margin-bottom:1rem">The score is a weighted average of six signal categories, with two anchors layered on top: <strong>content re-weighting</strong> when we cannot reach the homepage (content's 17% is dropped and the remaining five signals renormalize to sum to 100%), and the <strong>well-known brand anchor</strong> for unambiguously established sites. The model is versioned (current: <code style="font-family:var(--mono);font-size:0.85rem">ots-v1.4-weights</code>) and can be updated without re-crawling because raw signals are stored separately from scored results.</p>
 
 <div class="table-wrap">
 <table>
@@ -590,22 +590,22 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <section>
 <div class="container">
 <p class="label">Market Position</p>
-<h2>Where OTT sits in the agent commerce stack</h2>
+<h2>Where OTS sits in the agent commerce stack</h2>
 
 <div class="table-wrap" style="margin-top:1rem">
 <table>
-<thead><tr><th>Player</th><th>What they do</th><th>Relationship to OTT</th></tr></thead>
+<thead><tr><th>Player</th><th>What they do</th><th>Relationship to OTS</th></tr></thead>
 <tbody>
-<tr><td><strong>Stripe MPP</strong></td><td>Agent payment protocol (stablecoin + fiat)</td><td>Complementary: OTT is the pre-transaction check</td></tr>
-<tr><td><strong>Coinbase x402</strong></td><td>HTTP-native crypto payments</td><td>Complementary: OTT verifies before x402 pays</td></tr>
-<tr><td><strong>Skyfire KYAPay</strong></td><td>Agent identity + payments (proprietary)</td><td>Competitor on identity; OTT is open and rail-agnostic</td></tr>
+<tr><td><strong>Stripe MPP</strong></td><td>Agent payment protocol (stablecoin + fiat)</td><td>Complementary: OTS is the pre-transaction check</td></tr>
+<tr><td><strong>Coinbase x402</strong></td><td>HTTP-native crypto payments</td><td>Complementary: OTS verifies before x402 pays</td></tr>
+<tr><td><strong>Skyfire KYAPay</strong></td><td>Agent identity + payments (proprietary)</td><td>Competitor on identity; OTS is open and rail-agnostic</td></tr>
 <tr><td><strong>Visa Trusted Agent</strong></td><td>Agent credential framework</td><td>Different focus: they verify agents, we verify merchants</td></tr>
 <tr><td><strong>Google Safe Browsing</strong></td><td>Binary safe/unsafe flag</td><td>Data source: we consume their API as one of many signals</td></tr>
 </tbody>
 </table>
 </div>
 
-<p style="color:var(--text-light);font-size:0.9rem;margin-top:1rem"><strong>The neutrality argument:</strong> Payment rails cannot credibly be the trust authority for the merchants they process payments for. OTT is independent: we don't process payments, we don't take a transaction fee, we verify trust. Same structural reason SSL certificates come from independent CAs, not from browser vendors.</p>
+<p style="color:var(--text-light);font-size:0.9rem;margin-top:1rem"><strong>The neutrality argument:</strong> Payment rails cannot credibly be the trust authority for the merchants they process payments for. OTS is independent: we don't process payments, we don't take a transaction fee, we verify trust. Same structural reason SSL certificates come from independent CAs, not from browser vendors.</p>
 </div>
 </section>
 
@@ -632,15 +632,18 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <tr><td><strong>Fetch tier 1 (direct httpx)</strong></td><td style="color:var(--green)">Live</td><td>Realistic browser headers, Brotli decompression, Chrome and Safari user-agent rotation, www-fallback for sites with dead apex</td></tr>
 <tr><td><strong>Fetch tier 2 (headless Chromium)</strong></td><td style="color:var(--green)">Live</td><td>Dedicated crawler droplet (ott-crawler-1), FastAPI fetch service on private VPC, playwright-stealth, pool of warm contexts, shared-secret auth, circuit breaker</td></tr>
 <tr><td><strong>Fetch tier 3 (residential proxy)</strong></td><td style="color:var(--green)">Live</td><td>Decodo rotating residential IPs (gate.decodo.com:7000), Playwright through proxy, ephemeral contexts per request, separate circuit breaker, counters at /stats.fetch</td></tr>
-<tr><td><strong>Fetch tier 4 (real Chrome, residential)</strong></td><td style="color:var(--amber)">In progress</td><td>Physical Mac at a residential ISP via Tailscale. Intended to crack Cloudflare Enterprise Bot Management tier where datacenter + stealth alone cannot reach.</td></tr>
-<tr><td><strong>Registry seeding</strong></td><td style="color:var(--amber)">Growing</td><td>1,100+ domains across Tranco spectrum + international commerce + 5 major US retailer verticals</td></tr>
+<tr><td><strong>Fetch tier 4 (real Chrome, residential)</strong></td><td style="color:var(--green)">Live</td><td>Physical Mac at a residential ISP via Tailscale. Intended to crack Cloudflare Enterprise Bot Management tier where datacenter + stealth alone cannot reach.</td></tr>
+<tr><td><strong>Registry (100K)</strong></td><td style="color:var(--green)">Live</td><td>100,000+ domains from Tranco top-100K. Six-tier fetch ladder ensures comprehensive content analysis.</td></tr>
+<tr><td><strong>Fetch tier 5 (Wayback Machine)</strong></td><td style="color:var(--green)">Live</td><td>Internet Archive snapshot retrieval for sites that block live fetching. Per-domain hash-chain transparency log for tamper-evident attestation auditing.</td></tr>
+<tr><td><strong>Scoring v1.4 (consensus tier)</strong></td><td style="color:var(--green)">Live</td><td>Top-100 Tranco consensus identity tier raises ceiling from 55 to 75. Amazon/Google/Wikipedia score 80-90 instead of 75.</td></tr>
+<tr><td><strong>Transparency log</strong></td><td style="color:var(--green)">Live</td><td>Per-domain hash chain, public /v1/log/{domain} endpoint, /v1/log/{domain}/verify chain integrity check.</td></tr>
 <tr><td><strong>Calibration dataset</strong></td><td style="color:var(--text-dim)">Next</td><td>Every signed bundle has a check_id. Outcome feedback from registered merchants and API consumers retroactively backtests scores against real fraud outcomes. Over 6-12 months this becomes the real moat.</td></tr>
 <tr><td><strong>KYC infrastructure</strong></td><td style="color:var(--text-dim)">Planned</td><td>Enhanced, KYC-Verified, Enterprise tiers with partner integrations (Jumio / Onfido / Persona / OpenCorporates / Plaid)</td></tr>
 <tr><td><strong>Infrastructure scoring v2</strong></td><td style="color:var(--text-dim)">Planned</td><td>Parent company linkage (cloudfront.net to Amazon), x402/MPP endpoint detection, API-specific checklists</td></tr>
 <tr><td><strong>Historical WHOIS integration</strong></td><td style="color:var(--text-dim)">Planned</td><td>Enables true registrant-change detection without the false positives of the updated_date heuristic</td></tr>
-<tr><td><strong>Agent SDK reference integration</strong></td><td style="color:var(--text-dim)">Priority next</td><td>One widely-used agent framework (LangChain, CrewAI, OpenAI Swarm, Anthropic tool-use) calls OTT before payments in its reference implementation. Single most impactful GTM move.</td></tr>
+<tr><td><strong>Agent SDK reference integration</strong></td><td style="color:var(--text-dim)">Priority next</td><td>One widely-used agent framework (LangChain, CrewAI, OpenAI Swarm, Anthropic tool-use) calls OTS before payments in its reference implementation. Single most impactful GTM move.</td></tr>
 <tr><td><strong>Regional KYC partners</strong></td><td style="color:var(--text-dim)">Planned</td><td>Companies House (UK), VIES (EU VAT), regional ID verification providers</td></tr>
-<tr><td><strong>PostgreSQL migration</strong></td><td style="color:var(--text-dim)">At scale</td><td>Move from SQLite when registry exceeds 10K domains</td></tr>
+<tr><td><strong>PostgreSQL migration</strong></td><td style="color:var(--text-dim)">At scale</td><td>Move from SQLite when concurrent write pressure demands it</td></tr>
 <tr><td><strong>Multi-region</strong></td><td style="color:var(--text-dim)">Future</td><td>Geographic distribution for sub-200ms global response times</td></tr>
 </tbody>
 </table>
@@ -687,8 +690,8 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <footer>
 <div class="container">
 <img src="/otslogo.png" alt="OpenTrustSeal">
-<p>Trust verification for AI agent commerce</p>
-<p style="margin-top:0.25rem"><a href="https://opentrustseal.com" style="color:var(--text-dim)">opentrustseal.com</a> | <a href="https://api.opentrustseal.com/docs" style="color:var(--text-dim)">API Docs</a></p>
+<p>OpenTrustSeal, Inc. -- Independent trust attestation for AI agent commerce</p>
+<p style="margin-top:0.25rem"><a href="https://opentrustseal.com" style="color:var(--text-dim)">opentrustseal.com</a> . <a href="https://opentrustseal.github.io/status/" style="color:var(--text-dim)">Status</a> . <a href="https://api.opentrustseal.com/docs" style="color:var(--text-dim)">API Docs</a></p>
 </div>
 </footer>
 
