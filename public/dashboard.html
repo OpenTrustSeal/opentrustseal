@@ -150,7 +150,10 @@ h3{font-size:0.95rem;font-weight:600;margin-bottom:0.25rem;color:var(--text-ligh
 <button id="load-btn" type="button">Load Dashboard</button>
 </div>
 
-<div class="loading" id="loading">Loading dashboard data...</div>
+<div class="loading" id="loading">
+<div id="loading-msg" style="font-weight:600;margin-bottom:0.4rem">Loading dashboard data...</div>
+<div id="loading-detail" style="font-size:0.82rem;color:var(--text-dim)"></div>
+</div>
 
 <div class="dashboard" id="dashboard">
 
@@ -230,6 +233,8 @@ if(params.get('domain')){
 btn.addEventListener('click', loadDashboard);
 input.addEventListener('keydown', function(e){ if(e.key === 'Enter') loadDashboard(); });
 
+var dashTimer = null;
+
 function loadDashboard(){
   var domain = input.value.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
   if(!domain) return;
@@ -237,10 +242,47 @@ function loadDashboard(){
   loading.classList.add('visible');
   dashboard.classList.remove('visible');
 
-  fetch(API + '/v1/check/' + encodeURIComponent(domain) + '/dashboard')
-    .then(function(r){ return r.json(); })
-    .then(function(data){ renderDashboard(data, domain); })
-    .catch(function(){ loading.textContent = 'Error loading data.'; });
+  var msg = document.getElementById('loading-msg');
+  var detail = document.getElementById('loading-detail');
+  msg.textContent = 'Loading dashboard data...';
+  detail.textContent = '';
+
+  var elapsed = 0;
+  if(dashTimer) clearInterval(dashTimer);
+  dashTimer = setInterval(function(){
+    elapsed += 3;
+    if(elapsed >= 10 && elapsed < 30){
+      msg.textContent = 'Analyzing trust signals...';
+      detail.textContent = 'First-time checks require collecting domain age, SSL, DNS, content, reputation, and identity signals from public data. This takes 30-60 seconds.';
+    } else if(elapsed >= 30 && elapsed < 60){
+      msg.textContent = 'Still working...';
+      detail.textContent = 'Running content analysis and checking reputation databases. Complex sites take longer.';
+    } else if(elapsed >= 60){
+      msg.textContent = 'Taking longer than usual';
+      detail.textContent = 'The analysis is still running. You can wait or refresh in a moment.';
+    }
+  }, 3000);
+
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function(){ controller.abort(); }, 90000);
+
+  fetch(API + '/v1/check/' + encodeURIComponent(domain) + '/dashboard', {signal: controller.signal})
+    .then(function(r){ clearTimeout(timeoutId); return r.json(); })
+    .then(function(data){
+      if(dashTimer){ clearInterval(dashTimer); dashTimer = null; }
+      if(data.current && data.current.trustScore !== undefined){
+        renderDashboard(data, domain);
+      } else {
+        msg.textContent = 'Analysis in progress';
+        detail.innerHTML = 'Your check has been queued. <button onclick="loadDashboard()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--font);text-decoration:underline">Retry</button>';
+      }
+    })
+    .catch(function(){
+      clearTimeout(timeoutId);
+      if(dashTimer){ clearInterval(dashTimer); dashTimer = null; }
+      msg.textContent = 'Analysis in progress';
+      detail.innerHTML = 'The trust analysis is running on our servers. First-time checks on new domains take up to 60 seconds. <button onclick="loadDashboard()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--font);text-decoration:underline">Check again</button>';
+    });
 }
 
 function renderDashboard(data, domain){

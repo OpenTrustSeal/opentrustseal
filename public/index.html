@@ -187,7 +187,11 @@ footer a{color:var(--text-light)}
 <input type="text" id="domain-input" placeholder="Enter your domain (e.g. yoursite.com)" autocomplete="off" autocapitalize="none" spellcheck="false">
 <button id="check-btn" type="button">Check my site</button>
 </div>
-<div class="loading" id="loading">Analyzing trust signals...</div>
+<div class="loading" id="loading">
+<div id="loading-msg" style="font-weight:600;margin-bottom:0.5rem">Analyzing trust signals...</div>
+<div id="loading-detail" style="font-size:0.82rem;color:var(--text-dim)">Checking domain age, SSL, DNS, content, reputation, and identity from public data. First-time checks take 30-60 seconds.</div>
+<div id="loading-progress" style="font-size:0.78rem;color:var(--text-dim);margin-top:0.75rem"></div>
+</div>
 <div class="results" id="results">
 <div class="score-header">
 <span class="score-domain" id="r-domain"></span>
@@ -305,73 +309,145 @@ var btn = document.getElementById('check-btn');
 var loading = document.getElementById('loading');
 var results = document.getElementById('results');
 
+var progressTimer = null;
+var checkDomain = '';
+
+function updateProgress(seconds){
+  var el = document.getElementById('loading-progress');
+  var msg = document.getElementById('loading-msg');
+  if(seconds < 10){
+    el.textContent = 'Collecting signals...';
+  } else if(seconds < 25){
+    el.textContent = 'Checking reputation databases and SSL certificates...';
+  } else if(seconds < 45){
+    msg.textContent = 'Still working...';
+    el.textContent = 'Content analysis and identity verification in progress. This is normal for first-time checks.';
+  } else if(seconds < 75){
+    msg.textContent = 'Almost there...';
+    el.textContent = 'Running extended content checks. Complex sites take longer.';
+  } else {
+    msg.textContent = 'Taking longer than usual';
+    el.textContent = 'The analysis is still running on our servers. You can wait or check back in a moment.';
+  }
+}
+
+function showResults(d){
+  var loading = document.getElementById('loading');
+  var results = document.getElementById('results');
+  loading.classList.remove('visible');
+  document.getElementById('check-btn').disabled = false;
+  if(progressTimer){ clearInterval(progressTimer); progressTimer = null; }
+
+  document.getElementById('r-domain').textContent = d.domain;
+  var scoreEl = document.getElementById('r-score');
+  var recEl = document.getElementById('r-rec');
+  scoreEl.textContent = d.trustScore + '/100';
+  recEl.textContent = d.recommendation;
+  var cls = d.recommendation.toLowerCase();
+  scoreEl.className = 'score-num ' + cls;
+  recEl.className = 'score-rec ' + cls;
+
+  document.getElementById('r-reasoning').innerHTML = esc(d.reasoning) +
+    ' <a href="/dashboard.html?domain=' + encodeURIComponent(d.domain) + '" style="margin-left:0.5rem">View full dashboard</a>';
+
+  var cs = d.checklistSummary;
+  document.getElementById('r-summary').innerHTML =
+    '<span><span class="dot pass"></span> ' + cs.passing + ' passing</span>' +
+    '<span><span class="dot fail"></span> ' + cs.failing + ' failing</span>' +
+    '<span><span class="dot improve"></span> ' + cs.improvable + ' to improve</span>';
+
+  var failing = d.checklist.filter(function(i){ return i.status === 'fail' || i.status === 'available'; });
+  var improving = d.checklist.filter(function(i){ return i.status === 'improve'; });
+  var passing = d.checklist.filter(function(i){ return i.status === 'pass'; });
+
+  var html = '';
+  if(failing.length){
+    html += '<div class="cl-section-title">Needs attention</div>';
+    html += renderItems(failing);
+  }
+  if(improving.length){
+    html += '<div class="cl-section-title">Recommended improvements</div>';
+    html += renderItems(improving);
+  }
+  if(passing.length){
+    html += '<div class="cl-section-title">Passing</div>';
+    html += renderItems(passing);
+  }
+  document.getElementById('r-checklist').innerHTML = html;
+
+  document.querySelectorAll('.cl-toggle').forEach(function(t){
+    t.addEventListener('click', function(){
+      var item = this.closest('.cl-item');
+      item.classList.toggle('show-fix');
+      this.textContent = item.classList.contains('show-fix') ? 'Hide' : 'How to fix';
+    });
+  });
+
+  results.classList.add('visible');
+}
+
+function pollForResult(domain, attempt){
+  if(attempt > 12) return; // stop after ~60s of polling
+  fetch('https://api.opentrustseal.com/v1/check/' + encodeURIComponent(domain))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.trustScore !== undefined){
+        showResults(d);
+      }
+    })
+    .catch(function(){
+      setTimeout(function(){ pollForResult(domain, attempt + 1); }, 5000);
+    });
+}
+
 function doCheck(){
   var domain = input.value.trim().toLowerCase();
   if(!domain) return;
   domain = domain.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
   if(!domain) return;
+  checkDomain = domain;
 
   btn.disabled = true;
+  var loading = document.getElementById('loading');
+  var results = document.getElementById('results');
   loading.classList.add('visible');
   results.classList.remove('visible');
 
-  fetch('https://api.opentrustseal.com/v1/check/' + encodeURIComponent(domain))
-    .then(function(r){ return r.json(); })
+  // Reset loading messages
+  document.getElementById('loading-msg').textContent = 'Analyzing trust signals...';
+  document.getElementById('loading-detail').textContent = 'Checking domain age, SSL, DNS, content, reputation, and identity from public data. First-time checks take 30-60 seconds.';
+  document.getElementById('loading-progress').textContent = '';
+
+  // Progress updates while waiting
+  var elapsed = 0;
+  if(progressTimer) clearInterval(progressTimer);
+  progressTimer = setInterval(function(){ elapsed += 3; updateProgress(elapsed); }, 3000);
+
+  // Use AbortController for a 90-second timeout (longer than browser default)
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function(){ controller.abort(); }, 90000);
+
+  fetch('https://api.opentrustseal.com/v1/check/' + encodeURIComponent(domain), {signal: controller.signal})
+    .then(function(r){ clearTimeout(timeoutId); return r.json(); })
     .then(function(d){
-      loading.classList.remove('visible');
-      btn.disabled = false;
-
-      document.getElementById('r-domain').textContent = d.domain;
-      var scoreEl = document.getElementById('r-score');
-      var recEl = document.getElementById('r-rec');
-      scoreEl.textContent = d.trustScore + '/100';
-      recEl.textContent = d.recommendation;
-      var cls = d.recommendation.toLowerCase();
-      scoreEl.className = 'score-num ' + cls;
-      recEl.className = 'score-rec ' + cls;
-
-      document.getElementById('r-reasoning').innerHTML = esc(d.reasoning) +
-        ' <a href="/dashboard.html?domain=' + encodeURIComponent(d.domain) + '" style="margin-left:0.5rem">View full dashboard</a>';
-
-      var cs = d.checklistSummary;
-      document.getElementById('r-summary').innerHTML =
-        '<span><span class="dot pass"></span> ' + cs.passing + ' passing</span>' +
-        '<span><span class="dot fail"></span> ' + cs.failing + ' failing</span>' +
-        '<span><span class="dot improve"></span> ' + cs.improvable + ' to improve</span>';
-
-      // Group checklist by status
-      var failing = d.checklist.filter(function(i){ return i.status === 'fail' || i.status === 'available'; });
-      var improving = d.checklist.filter(function(i){ return i.status === 'improve'; });
-      var passing = d.checklist.filter(function(i){ return i.status === 'pass'; });
-
-      var html = '';
-      if(failing.length){
-        html += '<div class="cl-section-title">Needs attention</div>';
-        html += renderItems(failing);
+      if(d.trustScore !== undefined){
+        showResults(d);
+      } else if(d.error){
+        // API returned an error response (e.g., rate limit, server error)
+        document.getElementById('loading-msg').textContent = 'Analysis in progress';
+        document.getElementById('loading-detail').textContent = 'Your check has been queued. The result will appear shortly.';
+        document.getElementById('loading-progress').textContent = '';
+        setTimeout(function(){ pollForResult(domain, 1); }, 5000);
       }
-      if(improving.length){
-        html += '<div class="cl-section-title">Recommended improvements</div>';
-        html += renderItems(improving);
-      }
-      if(passing.length){
-        html += '<div class="cl-section-title">Passing</div>';
-        html += renderItems(passing);
-      }
-      document.getElementById('r-checklist').innerHTML = html;
-
-      document.querySelectorAll('.cl-toggle').forEach(function(t){
-        t.addEventListener('click', function(){
-          var item = this.closest('.cl-item');
-          item.classList.toggle('show-fix');
-          this.textContent = item.classList.contains('show-fix') ? 'Hide' : 'How to fix';
-        });
-      });
-
-      results.classList.add('visible');
     })
-    .catch(function(){
-      loading.classList.remove('visible');
-      btn.disabled = false;
+    .catch(function(err){
+      clearTimeout(timeoutId);
+      // Request timed out or failed. The API is still processing.
+      // Start polling for the result.
+      document.getElementById('loading-msg').textContent = 'Analysis in progress';
+      document.getElementById('loading-detail').textContent = 'The trust analysis is still running on our servers. This happens with first-time checks on complex sites.';
+      document.getElementById('loading-progress').innerHTML = 'Checking for results... <button onclick="pollForResult(\'' + esc(domain) + '\', 1)" style="background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--font);font-size:0.78rem;text-decoration:underline">Retry now</button>';
+      setTimeout(function(){ pollForResult(domain, 1); }, 5000);
     });
 }
 
