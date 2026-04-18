@@ -174,8 +174,8 @@ footer a{color:var(--text-light)}
 <header class="hero">
 <div class="container">
 <img src="/otslogo.png" alt="" class="hero-logo" aria-hidden="true">
-<h1>Independent trust attestation for agentic commerce</h1>
-<p class="subtitle">AI agents are starting to make autonomous payments. They need to know which merchants to trust before they pay. OpenTrustSeal answers that question with a signed evidence bundle, a longitudinal trust profile, and a PROCEED / CAUTION / DENY recommendation. Run a free check on any domain, or call the API before your agent transacts.</p>
+<h1>Should your AI agent pay this site?</h1>
+<p class="subtitle">OpenTrustSeal is the independent trust verification layer for AI agent commerce. One API call returns a cryptographically signed evidence bundle with a trust score, six-category signal breakdown, and a PROCEED / CAUTION / DENY recommendation. Free for merchants to check their score. Free tier for developers.</p>
 </div>
 </header>
 
@@ -209,22 +209,22 @@ footer a{color:var(--text-light)}
 <section id="how">
 <div class="container">
 <h2>How it works</h2>
-<p style="color:var(--text-light);max-width:600px">Stripe, Coinbase x402, Visa AP2, and Skyfire are all building the "how agents pay" layer. Nobody has standardized the pre-transaction question: "should this agent pay this specific merchant?" That is the layer OpenTrustSeal owns.</p>
+<p style="color:var(--text-light);max-width:600px">Payment rails (Stripe, x402, Visa AP2, Skyfire) handle how agents pay. OpenTrustSeal answers the question that comes first: should this agent pay this merchant at all?</p>
 <div class="how-grid">
 <div class="how-card">
 <div class="how-num">1</div>
-<h3>Compositional signals, not guesses</h3>
-<p>Six signal categories run in parallel: domain age, SSL/TLS, DNS security, content analysis, reputation databases, identity verification. Each is evidence from public data. The scoring model is versioned and reproducible from stored raw data.</p>
+<h3>Six signal categories, zero guesswork</h3>
+<p>Domain age, SSL/TLS, DNS security, content analysis, reputation databases (Spamhaus, SURBL, Google Safe Browsing), and identity verification. Each signal is verifiable public evidence. The scoring model is versioned and every score is reproducible from stored raw data.</p>
 </div>
 <div class="how-card">
 <div class="how-num">2</div>
-<h3>Signed evidence bundles, not opaque scores</h3>
-<p>Every response is cryptographically signed with Ed25519. Agents can verify the bundle without trusting us, which is why payment protocols can cite our verdicts without putting us on their critical path. The evidence bundle is the product; the score is a convenience summary over it.</p>
+<h3>Signed evidence, not opaque scores</h3>
+<p>Every response is cryptographically signed with Ed25519. Agents verify the bundle without trusting us. Payment protocols can cite our verdicts without putting us on their critical path. The evidence bundle is the product; the trust score is a convenience summary over it.</p>
 </div>
 <div class="how-card">
 <div class="how-num">3</div>
-<h3>Compositional brand anchor for established sites</h3>
-<p>Long-term Tranco top-50K + 5+ years of domain age + clean reputation + valid SSL is unfakeable composite evidence of established public trust. Sites meeting all four conditions receive an automatic PROCEED verdict, the same way credit bureaus weight account longevity. Any active safety signal revokes the anchor immediately.</p>
+<h3>100,000+ domains scored</h3>
+<p>The registry covers the Tranco top-100K with longitudinal trust profiles. A six-tier fetch ladder (direct, headless Chrome, residential proxy, Wayback Machine, protocol probes) ensures comprehensive content analysis even for sites behind aggressive bot protection.</p>
 </div>
 </div>
 </div>
@@ -238,7 +238,7 @@ footer a{color:var(--text-light)}
 <div class="two-col">
 <div class="info-card">
 <h3>Site owners and merchants</h3>
-<p>Check your trust score, see a prioritized checklist of specific improvements, and track your score history over time. <a href="/register.html">Register your domain</a> to prove ownership and unlock per-field verification points that automated checks cannot reach. Higher tiers ($29, $99, $499/mo) add business registry cross-referencing, KYC verification, and transaction insurance.</p>
+<p>Check your trust score, see a prioritized checklist of specific improvements, and track your score history over time. <a href="/register.html">Register your domain</a> to prove ownership and earn verification points that automated checks cannot reach. As AI agents become a significant traffic source, a higher trust score means more completed transactions.</p>
 </div>
 <div class="info-card">
 <h3>Agent developers</h3>
@@ -285,8 +285,14 @@ data = r.<span class="fn">json</span>()<br>
 <footer>
 <div class="container">
 <img src="/otslogo.png" alt="OpenTrustSeal" class="footer-logo">
-<p>Trust verification for AI agent commerce</p>
-<p style="margin-top:0.5rem"><a href="https://api.opentrustseal.com/docs">API Docs</a></p>
+<p>OpenTrustSeal, Inc. -- Independent trust attestation for AI agent commerce</p>
+<p style="margin-top:0.5rem">
+<a href="https://api.opentrustseal.com/docs">API Docs</a> &middot;
+<a href="/dashboard.html">Dashboard</a> &middot;
+<a href="https://opentrustseal.github.io/status/">System Status</a> &middot;
+<a href="/register.html">Register</a> &middot;
+<a href="mailto:alu@opentrustseal.com">Contact</a>
+</p>
 </div>
 </footer>
 
