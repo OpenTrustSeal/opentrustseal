@@ -1,12 +1,12 @@
 """LangChain / LangGraph tool integration for OpenTrustSeal.
 
 Usage:
-    from opentrustseal.integrations.langchain import OTTVerifyTool
+    from opentrustseal.integrations.langchain import OpenTrustSealTool
 
-    tools = [OTTVerifyTool()]
+    tools = [OpenTrustSealTool()]
     agent = create_react_agent(llm, tools)
 
-    # The agent can now call: OTTVerifyTool.run("merchant.com")
+    # The agent can now call: OpenTrustSealTool.run("merchant.com")
     # Returns: "merchant.com: Score 81/100 (PROCEED). Established domain, valid SSL..."
 """
 
@@ -19,10 +19,10 @@ except ImportError:
     )
 
 from typing import Optional
-from ..client import OTTClient
+from ..client import OTSClient
 
 
-class OTTVerifyTool(BaseTool):
+class OpenTrustSealTool(BaseTool):
     """Tool that checks a domain's trust score before an agent transacts.
 
     Returns a human-readable summary that an LLM agent can use to
@@ -41,7 +41,7 @@ class OTTVerifyTool(BaseTool):
     base_url: str = "https://api.opentrustseal.com"
 
     def _run(self, domain: str) -> str:
-        client = OTTClient(api_key=self.api_key, base_url=self.base_url)
+        client = OTSClient(api_key=self.api_key, base_url=self.base_url)
         try:
             result = client.check(domain.strip())
         except Exception as e:
@@ -71,7 +71,7 @@ class OTTVerifyTool(BaseTool):
         return "\n".join(lines)
 
     async def _arun(self, domain: str) -> str:
-        client = OTTClient(api_key=self.api_key, base_url=self.base_url)
+        client = OTSClient(api_key=self.api_key, base_url=self.base_url)
         try:
             result = await client.async_check(domain.strip())
         except Exception as e:

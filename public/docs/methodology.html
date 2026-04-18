@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scoring Methodology - OpenTrustSeal</title>
+<meta name="description" content="How OpenTrustSeal computes trust scores: six signal categories, weighted scoring, brand anchors, and the evidence-first approach to AI agent commerce trust.">
+<link rel="icon" type="image/png" href="/otsseal.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--navy:#0f1f30;--blue:#2878b8;--blue-dark:#1d5f94;
+--green:#27ae60;--amber:#d97706;--red:#dc2626;
+--white:#ffffff;--off-white:#f7f8fa;
+--text:#1f2937;--text-light:#4b5563;--text-dim:#9ca3af;
+--border:#e5e7eb;--border-light:#f3f4f6;
+--font:'Inter',system-ui,sans-serif;
+--mono:'SF Mono','Cascadia Code',monospace;
+--radius:8px;
+}
+body{font-family:var(--font);color:var(--text);background:var(--white);line-height:1.7}
+a{color:var(--blue);text-decoration:none}
+a:hover{color:var(--blue-dark)}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+.skip-link{position:absolute;top:-100%;left:1rem;padding:0.75rem 1.5rem;background:var(--blue);color:#fff;font-weight:600;border-radius:0 0 8px 8px;z-index:1000}
+.skip-link:focus{top:0}
+.container{max-width:720px;margin:0 auto;padding:0 1.5rem}
+h1{font-size:1.75rem;font-weight:800;letter-spacing:-0.02em;color:var(--navy);margin-bottom:0.5rem}
+h2{font-size:1.25rem;font-weight:700;margin-top:2.5rem;margin-bottom:0.75rem;color:var(--navy)}
+h3{font-size:1rem;font-weight:600;margin-top:1.5rem;margin-bottom:0.5rem}
+p{margin-bottom:1rem}
+ul,ol{margin-bottom:1rem;padding-left:1.5rem}
+li{margin-bottom:0.4rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0 1.5rem;font-size:0.875rem}
+th{text-align:left;padding:0.5rem 0.75rem;border-bottom:2px solid var(--border);font-weight:600;color:var(--navy)}
+td{padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-light)}
+code{font-family:var(--mono);font-size:0.85em;background:var(--off-white);padding:0.15rem 0.35rem;border-radius:3px}
+.nav{padding:0.75rem 0;border-bottom:1px solid var(--border);margin-bottom:2rem}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:720px;margin:0 auto;padding:0 1.5rem}
+.nav-brand img{height:28px}
+.nav-links{display:flex;gap:1rem;font-size:0.85rem}
+.nav-links a{color:var(--text-light);font-weight:500}
+.badge{display:inline-block;font-size:0.7rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:100px;text-transform:uppercase;letter-spacing:0.03em}
+.badge.proceed{background:#d1fae5;color:#065f46}
+.badge.caution{background:#fef3c7;color:#92400e}
+.badge.deny{background:#fee2e2;color:#991b1b}
+footer{padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;text-align:center;font-size:0.82rem;color:var(--text-dim)}
+@media(max-width:768px){table{font-size:0.78rem}th,td{padding:0.4rem 0.5rem}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:0.01ms !important}}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav class="nav" aria-label="Main">
+<div class="nav-inner">
+<a href="/"><img src="/otslogo.png" alt="OpenTrustSeal" height="28"></a>
+<div class="nav-links">
+<a href="/">Home</a>
+<a href="/dashboard.html">Dashboard</a>
+<a href="https://api.opentrustseal.com/docs">API Docs</a>
+</div>
+</div>
+</nav>
+
+<main id="main">
+<div class="container">
+
+<h1>Scoring Methodology</h1>
+<p style="color:var(--text-light)">How OpenTrustSeal computes trust scores from publicly observable evidence.</p>
+
+<h2>Principles</h2>
+
+<p><strong>Evidence first, score second.</strong> Every trust score is a weighted summary of observable signals. The API returns the raw signal data alongside the score so agents can inspect, override, or weight signals differently for their own risk models. The score is a convenience; the evidence bundle is the product.</p>
+
+<p><strong>Versioned and reproducible.</strong> Every score includes a <code>scoringModel</code> field (e.g., <code>ots-v1.4-weights</code>). Raw signal data is stored separately from computed scores. When the scoring algorithm changes, every domain can be re-scored from stored data without re-crawling. Score changes are explicit, not silent.</p>
+
+<p><strong>Cryptographically signed.</strong> Every response is signed with Ed25519. The public key is published in the <a href="https://opentrustseal.com/.well-known/did.json">DID document</a>. Agents and payment protocols can verify that a score was issued by OpenTrustSeal and was not tampered with after issuance.</p>
+
+<h2>Signal categories and weights</h2>
+
+<table>
+<thead>
+<tr><th>Signal</th><th>Weight</th><th>What it measures</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Reputation</strong></td><td>30%</td><td>Is this domain flagged as malicious? How popular is it among real users? Sources: Spamhaus DBL, SURBL, URLhaus, Google Safe Browsing, Tranco top-1M ranking.</td></tr>
+<tr><td><strong>Identity</strong></td><td>25%</td><td>Can we verify who operates this domain? Sources: WHOIS disclosure, SSL certificate organization (OV/EV certs), Tranco rank as identity signal, SEC EDGAR public company lookup, schema.org Organization markup.</td></tr>
+<tr><td><strong>Content</strong></td><td>17%</td><td>Does the site present itself as a legitimate, transparent business? Checks: privacy policy, terms of service, contact information, security headers (CSP, HSTS, X-Frame-Options), robots.txt, security.txt.</td></tr>
+<tr><td><strong>Domain Age</strong></td><td>10%</td><td>How long has this domain been registered? Older domains are harder to fake. Bands: &lt;30 days (0), 30-90d (20), 90-180d (40), 180d-1y (60), 1-2y (75), 2-5y (90), 5y+ (100).</td></tr>
+<tr><td><strong>SSL/TLS</strong></td><td>10%</td><td>Is the connection secure? Checks: certificate validity, TLS version (1.2 vs 1.3), HSTS header, certificate issuer quality.</td></tr>
+<tr><td><strong>DNS</strong></td><td>8%</td><td>Is the domain's DNS infrastructure properly configured? Checks: SPF (email sender policy), DMARC (email authentication), DNSSEC (DNS integrity), CAA (certificate authority authorization).</td></tr>
+</tbody>
+</table>
+
+<h2>Thresholds</h2>
+
+<table>
+<thead>
+<tr><th>Score range</th><th>Recommendation</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>75-100</td><td><span class="badge proceed">PROCEED</span></td><td>Multiple independent trust signals are positive. Safe for automated transactions.</td></tr>
+<tr><td>40-74</td><td><span class="badge caution">CAUTION</span></td><td>Some trust signals are weak or missing. Agent should flag for human review before transacting.</td></tr>
+<tr><td>0-39</td><td><span class="badge deny">DENY</span></td><td>Critical trust signals are absent or negative. Agent should refuse the transaction.</td></tr>
+</tbody>
+</table>
+
+<h2>Brand anchor</h2>
+
+<p>Domains that satisfy ALL four of the following conditions receive a trust score floor of 75 (PROCEED):</p>
+
+<ol>
+<li>Tranco rank in the top 50,000 (verified by billions of real-user requests across Cloudflare, Umbrella, Majestic, Quantcast)</li>
+<li>Domain age of 5+ years</li>
+<li>Clean reputation (no malware, phishing, or spam listings)</li>
+<li>Valid SSL certificate</li>
+</ol>
+
+<p>This compositional anchor uses signals that cannot be purchased, spoofed, or fabricated. Long-term presence in the Tranco top-50K is the digital equivalent of a decades-long credit history: the sheer volume of real-user traffic required to reach that ranking makes gaming infeasible.</p>
+
+<p>Any active safety signal (malware detected, phishing flag, spam listing) instantly revokes the anchor, regardless of the domain's Tranco rank or age.</p>
+
+<h2>Consensus tier (v1.4)</h2>
+
+<p>Domains in the Tranco top 100 with 10+ years of domain age receive an elevated identity ceiling (75 instead of 55). This spreads the scores for the most established brands (Google, Amazon, Microsoft, Wikipedia) above the 75-point anchor floor into the 80-90 range, reflecting the additional identity confidence that comes from sustained global prominence.</p>
+
+<h2>Content-unscorable domains</h2>
+
+<p>Some sites block automated content fetching through bot protection (Cloudflare Enterprise, DataDome, PerimeterX). When the content signal cannot be collected, the scoring model drops content from the weighted sum and renormalizes the remaining five signals to sum to 100%. The response includes <code>crawlability: "blocked"</code> and the <code>CONTENT_UNSCORABLE</code> flag.</p>
+
+<p>OpenTrustSeal uses a six-tier fetch escalation ladder to maximize content collection:</p>
+
+<ol>
+<li>Direct HTTP with realistic browser headers</li>
+<li>Headless Chrome via Playwright (renders JavaScript)</li>
+<li>Playwright through rotating residential proxy</li>
+<li>Real Chrome on residential ISP via Tailscale</li>
+<li>Internet Archive Wayback Machine (archived snapshots)</li>
+<li>Protocol probe (fetches the site's 404 error shell, which typically contains footer links)</li>
+</ol>
+
+<h2>Registration and KYC</h2>
+
+<p>Site owners can <a href="/register.html">register their domain</a> to earn additional identity points through verified fields: business name, EIN/tax ID, address, phone, social profiles. Each verified field contributes independently to the identity score. Registration raises the practical ceiling above what automated signals alone can reach.</p>
+
+<p>Future KYC tiers (enhanced verification, government ID, continuous monitoring) will raise the identity ceiling further, creating a clear incentive structure for merchants who want to maximize agent transaction conversion.</p>
+
+<h2>What the score does NOT measure</h2>
+
+<ul>
+<li><strong>Product quality.</strong> A site can score PROCEED and sell low-quality products.</li>
+<li><strong>Business ethics.</strong> Fraud that doesn't manifest in technical signals (bait-and-switch, counterfeit goods) is not detectable from public data alone.</li>
+<li><strong>Future state.</strong> Scores are point-in-time snapshots. A site that scores PROCEED today could be compromised tomorrow.</li>
+<li><strong>Compliance.</strong> The score is not a legal certification. It is evidence-based assessment, not a guarantee.</li>
+</ul>
+
+<h2>Transparency</h2>
+
+<p>Every attestation is logged in a per-domain hash chain (tamper-evident transparency log). Auditors can verify the chain at <code>/v1/log/{domain}/verify</code>. The scoring model version, raw signal data, and computed score are all available via the API for independent verification.</p>
+
+<p>The Ed25519 signing key's public component is published in the <a href="https://opentrustseal.com/.well-known/did.json">DID document</a>. Key rotation follows a documented 12-month schedule with a 2-week overlap period.</p>
+
+</div>
+</main>
+
+<footer>
+<div class="container">
+<p>OpenTrustSeal, Inc. -- Independent trust attestation for AI agent commerce</p>
+<p style="margin-top:0.4rem">
+<a href="/">Home</a> &middot;
+<a href="https://api.opentrustseal.com/docs">API Docs</a> &middot;
+<a href="https://opentrustseal.github.io/status/">Status</a> &middot;
+<a href="mailto:alu@opentrustseal.com">Contact</a>
+</p>
+</div>
+</footer>
+
+</body>
+</html>

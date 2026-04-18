@@ -50,18 +50,22 @@ export interface ChecklistSummary {
 }
 
 export interface CheckResult {
+  checkId: string;
   domain: string;
   trustScore: number;
   recommendation: 'PROCEED' | 'CAUTION' | 'DENY';
   reasoning: string;
   scoringModel: string;
   siteCategory: 'consumer' | 'infrastructure' | 'api_service';
+  brandTier: 'well_known' | 'scored';
+  crawlability: 'ok' | 'blocked';
   flags: string[];
   signals: Signals;
   jurisdiction: Jurisdiction;
   checklist: ChecklistItem[];
   checklistSummary: ChecklistSummary;
   signature: string;
+  signatureKeyId: string;
   issuer: string;
   checkedAt: string;
   expiresAt: string;
@@ -76,7 +80,7 @@ export interface CheckResult {
   hasCriticalFlags: boolean;
 }
 
-export interface OTTClientOptions {
+export interface OTSClientOptions {
   apiKey?: string;
   baseUrl?: string;
   timeout?: number;
@@ -95,12 +99,12 @@ function enrichResult(data: any): CheckResult {
   };
 }
 
-export class OTTClient {
+export class OTSClient {
   private baseUrl: string;
   private headers: Record<string, string>;
   private timeout: number;
 
-  constructor(options: OTTClientOptions = {}) {
+  constructor(options: OTSClientOptions = {}) {
     this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '');
     this.timeout = options.timeout || 30000;
     this.headers = { 'User-Agent': 'opentrustseal-js/0.1.0' };
@@ -140,6 +144,6 @@ export class OTTClient {
 
 /** Check a domain using the default client (free tier, no API key). */
 export async function check(domain: string, options?: { refresh?: boolean }): Promise<CheckResult> {
-  const client = new OTTClient();
+  const client = new OTSClient();
   return client.check(domain, options);
 }
