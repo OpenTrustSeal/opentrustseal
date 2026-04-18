@@ -9,7 +9,11 @@ The product has three faces:
 - **For agents:** "One API call before paying" (the API)
 - **For the ecosystem:** signed Ed25519 evidence bundles that can be verified without trusting us, enabling compositional use by payment protocols (AP2, x402, MPP) without putting us on their critical path
 
-The real asset is the longitudinal database of trust profiles for every domain we check. Raw signal data stored separately from scores so we can re-score without re-crawling. Scoring is versioned (currently ots-v1.3-weights).
+The real asset is the longitudinal database of trust profiles for every domain we check. Raw signal data stored separately from scores so we can re-score without re-crawling. Scoring is versioned (currently ots-v1.4-weights, consensus tier for Tranco top-100).
+
+**Rebrand status (2026-04-17/18):** Code fully renamed from opentrusttoken/OTT to opentrustseal/OTS in the git repo. VPS infrastructure still runs under the old paths/names (deferred to post-seed cutover). Both domains (opentrusttoken.com and opentrustseal.com) serve the same API simultaneously.
+
+**100K seed crawl (in progress):** 24 processes x 5 workers on burst droplet 165.227.26.56 (8GB/4vCPU). Rate ~42 domains/min. ETA ~1.5 days (April 19-20). Checkpoint-resumable. After completion: merge burst DB into production via merge_db.py, rescore with v1.4, export dataset, destroy droplet.
 
 ## What's Built and Deployed
 
