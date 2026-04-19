@@ -33,6 +33,14 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Per-process DB isolation: set BEFORE importing app modules so the
+# database module picks up the per-process path at import time.
+# Each process writes to its own ots-{pid}.db to prevent concurrent
+# write corruption across multiple crawl_seed processes.
+_pid = os.getpid()
+_data_dir = Path(os.environ.get("OTS_DATA_DIR", "./data"))
+os.environ["OTS_DB_PATH"] = str(_data_dir / f"ots-{_pid}.db")
+
 from app.pipeline import run_check
 from app.database import init_db, store_check, _get_conn
 from app.signing import ensure_keys
@@ -252,16 +260,7 @@ def parse_args() -> dict:
 async def main() -> int:
     cfg = parse_args()
 
-    # ---- Per-process DB isolation -----------------------------------------
-    # Multiple crawl_seed processes running on the same box must NOT share
-    # a SQLite file. Concurrent writes from separate processes corrupt the
-    # database (we lost 11 of 19 DBs to this in the first seed run).
-    # Each process gets its own DB file named by PID. The post-seed merge
-    # script collects all per-process DBs and merges them.
-    pid = os.getpid()
-    db_path = Path(os.environ.get("OTS_DATA_DIR", "./data")) / f"ots-{pid}.db"
-    os.environ["OTS_DB_PATH"] = str(db_path)
-    print(f"DB: {db_path}", flush=True)
+    print(f"DB: {os.environ.get('OTS_DB_PATH')}", flush=True)
 
     # ---- Fast mode: optimize for coverage over completeness ---------------
     # Caps WHOIS at 5s (instead of 30s), disables Playwright tiers 2-4
