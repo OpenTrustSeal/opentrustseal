@@ -320,38 +320,62 @@ def compute_recommendation(score: int, flags: list[str]) -> str:
 def compute_confidence(
     signals: SignalBundle,
     content_scorable: bool = True,
+    domain_age_days: int = -1,
 ) -> str:
     """Rate how complete the evidence is for this domain.
 
-    'high'   = all 6 signals collected with non-trivial scores.
-    'medium' = 4-5 signals have real data, 1-2 are missing or zero.
+    'high'   = 5-6 signals collected with real data. The score is
+               based on comprehensive evidence.
+    'medium' = 4 signals have real data, 1-2 have gaps. Score is
+               directionally right but could shift on re-check.
     'low'    = 3 or fewer signals have real data. Score is based on
                limited evidence and will likely change on a full-tier
                re-check.
 
-    This is orthogonal to the trust score: a domain can score 75
-    (PROCEED) with low confidence (only 3 signals available), which
-    means the PROCEED should be treated cautiously until more evidence
-    is collected.
+    Key distinction: a signal with score=0 because we COLLECTED the
+    data and it was absent (e.g., no privacy policy found on a
+    successfully crawled page) is evidence. A signal with score=0
+    because we COULDN'T COLLECT the data (content blocked, WHOIS
+    timed out) is a gap. Confidence reflects gaps, not weakness.
+
+    We approximate this by treating certain zeros as gaps vs evidence:
+    - Content score=0 when content_scorable=False -> gap (not evidence)
+    - Domain age score=0 when domain_age_days<0 -> gap (WHOIS failed)
+    - Domain age score=0 when domain_age_days>=0 -> evidence (new domain)
+    - SSL score=0 -> evidence (no SSL is a real finding)
+    - DNS score never 0 (minimum is 20), so always evidence
+    - Identity score=0 -> gap (WHOIS + cert check both failed)
+    - Reputation score=0 -> evidence (blocklist hit is a real finding)
     """
-    scores = [
-        signals.reputation.score,
-        signals.identity.score,
-        signals.domain_age.score,
-        signals.ssl.score,
-        signals.dns.score,
-    ]
-    # Content is special: if not scorable, it's a known gap, not a zero
+    evidence_count = 0
+    total_possible = 6
+
+    # Reputation: score=0 means blocklist hit, that's evidence
+    evidence_count += 1  # always counts
+
+    # SSL: score=0 means no SSL, that's evidence
+    evidence_count += 1  # always counts
+
+    # DNS: minimum score is 20 (always has data)
+    evidence_count += 1  # always counts
+
+    # Domain age: depends on whether WHOIS actually returned data
+    if domain_age_days >= 0:
+        evidence_count += 1  # WHOIS worked, even if domain is new
+    # else: WHOIS failed, this is a gap
+
+    # Identity: score=0 could be gap (WHOIS + cert both failed)
+    if signals.identity.score > 0:
+        evidence_count += 1
+
+    # Content: depends on whether we could fetch
     if content_scorable:
-        scores.append(signals.content.score)
+        evidence_count += 1  # we fetched, even if we found nothing
+    # else: content blocked, this is a gap
 
-    # Count signals with meaningful data (score > 0)
-    has_data = sum(1 for s in scores if s > 0)
-    total = len(scores)
-
-    if has_data >= total - 1:  # at most 1 missing
+    if evidence_count >= 5:
         return "high"
-    elif has_data >= total - 2:  # at most 2 missing
+    elif evidence_count >= 4:
         return "medium"
     else:
         return "low"

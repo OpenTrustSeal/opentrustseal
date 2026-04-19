@@ -64,20 +64,34 @@ def scan_db(db_path: str) -> dict:
         zeros = [k for k, v in scores.items() if v == 0]
         non_zero = 6 - len(zeros)
 
-        # Include if: content=0, identity=0, domainAge=0, or <4 signals
+        # Include if the domain has EVIDENCE GAPS (not just weak signals).
+        # A new domain with age=0 is legitimately new, not incomplete.
+        # A domain with content=0 on a successful crawl just lacks a
+        # privacy policy. We only re-queue domains where the PIPELINE
+        # couldn't collect data, not where the data was collected and
+        # found weak.
         needs_completion = False
         reason = []
 
-        if scores["content"] == 0:
+        # Content=0 is a gap ONLY if content was unscorable (blocked)
+        resp_flags = resp.get("flags", [])
+        if scores["content"] == 0 and "CONTENT_UNSCORABLE" in resp_flags:
             needs_completion = True
-            reason.append("content=0")
+            reason.append("content_blocked")
+
+        # Identity=0 is likely a WHOIS failure (gap), not "verified empty"
         if scores["identity"] == 0:
             needs_completion = True
             reason.append("identity=0")
-        if scores["domainAge"] == 0:
+
+        # Age=0 is a gap only if we got NO registration date at all
+        age_date = signals.get("domainAge", {}).get("registeredDate", "")
+        if scores["domainAge"] == 0 and not age_date:
             needs_completion = True
-            reason.append("age=0")
-        if non_zero < 4:
+            reason.append("whois_failed")
+
+        # Very few signals = pipeline couldn't run most collectors
+        if non_zero < 3:
             needs_completion = True
             reason.append(f"only {non_zero}/6 signals")
 

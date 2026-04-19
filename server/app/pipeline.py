@@ -272,6 +272,7 @@ async def _run_check_inner(domain: str) -> CheckResponse:
             "redirectCount": getattr(content_result, '_redirect_count', 0),
             "responseTimeMs": getattr(content_result, '_response_time_ms', 0),
             "socialLinks": getattr(content_result, '_social_links', []),
+            "_unscorable": content_unscorable,
             "structuredData": getattr(content_result, '_structured_data', {}),
             "siteCategory": getattr(content_result, '_site_category', 'consumer'),
             "hasApiDocs": getattr(content_result, '_has_api_docs', False),
@@ -363,6 +364,7 @@ async def _run_check_inner(domain: str) -> CheckResponse:
 
     confidence = scoring.compute_confidence(
         signals, content_scorable=not content_unscorable,
+        domain_age_days=domain_age_days,
     )
     caution_reason = scoring.compute_caution_reason(
         signals, trust_score, domain_age_days,
@@ -391,6 +393,8 @@ async def _run_check_inner(domain: str) -> CheckResponse:
         "trustScore": trust_score,
         "scoringModel": scoring.SCORING_MODEL,
         "recommendation": recommendation,
+        "confidence": confidence,
+        "cautionReason": caution_reason,
     }
 
     signature = signing.sign_payload(signable)

@@ -213,7 +213,7 @@ def main():
                 flags.append("ANCHOR_ONLY")
 
         recommendation = compute_recommendation(score, flags)
-        confidence = compute_confidence(signals, content_scorable=not content_unscorable)
+        confidence = compute_confidence(signals, content_scorable=not content_unscorable, domain_age_days=domain_age_days)
         caution_reason = compute_caution_reason(
             signals, score, domain_age_days,
             content_scorable=not content_unscorable,

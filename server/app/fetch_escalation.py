@@ -377,8 +377,11 @@ async def fetch_via_macbook(url: str, timeout_s: float = 40.0) -> Optional[Crawl
             return CrawlerResponse(body)
         except Exception:
             breaker.record_error()
-        COUNTERS["tier4_error"] += 1
-        return None
+            COUNTERS["tier4_error"] += 1
+            continue  # try next residential endpoint
+
+    # All endpoints tried, all failed or had open breakers
+    return None
 
 
 async def fetch_via_wayback(url: str, timeout_s: float = 25.0) -> Optional[CrawlerResponse]:
