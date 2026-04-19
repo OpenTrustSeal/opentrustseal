@@ -139,6 +139,8 @@ def load_scored_results(db_path: Path) -> list[dict]:
             "contentScorable": "no" if "CONTENT_UNSCORABLE" in resp.get("flags", []) else "yes",
             "trancoBucket": _tranco_bucket(signals.get("reputation", {}).get("score", 0)),
             "signalCompleteness": _signal_completeness(signals),
+            "confidence": resp.get("confidence", ""),
+            "cautionReason": resp.get("cautionReason", ""),
         })
 
     return results
@@ -156,6 +158,7 @@ CSV_FIELDS = [
     "reputation_malware", "reputation_phishing", "reputation_spamListed",
     "flags",
     "crawlMode", "contentScorable", "trancoBucket", "signalCompleteness",
+    "confidence", "cautionReason",
 ]
 
 

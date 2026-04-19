@@ -54,6 +54,8 @@ export interface CheckResult {
   domain: string;
   trustScore: number;
   recommendation: 'PROCEED' | 'CAUTION' | 'DENY';
+  confidence: 'high' | 'medium' | 'low';
+  cautionReason: 'incomplete_evidence' | 'weak_signals' | 'new_domain' | 'infrastructure' | null;
   reasoning: string;
   scoringModel: string;
   siteCategory: 'consumer' | 'infrastructure' | 'api_service';

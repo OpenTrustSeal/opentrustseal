@@ -71,6 +71,8 @@ class CheckResult:
     domain: str = ""
     trust_score: int = 0
     recommendation: str = ""
+    confidence: str = "high"  # "high", "medium", "low"
+    caution_reason: Optional[str] = None  # "incomplete_evidence", "weak_signals", "new_domain", "infrastructure"
     reasoning: str = ""
     scoring_model: str = ""
     site_category: str = "consumer"
@@ -148,6 +150,8 @@ def _parse_response(data: dict) -> CheckResult:
         domain=data.get("domain", ""),
         trust_score=data.get("trustScore", 0),
         recommendation=data.get("recommendation", ""),
+        confidence=data.get("confidence", "high"),
+        caution_reason=data.get("cautionReason"),
         reasoning=data.get("reasoning", ""),
         scoring_model=data.get("scoringModel", ""),
         site_category=data.get("siteCategory", "consumer"),

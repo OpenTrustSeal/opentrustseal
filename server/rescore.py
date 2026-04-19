@@ -21,7 +21,7 @@ import json
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.database import init_db, get_all_raw_signals, store_check, _get_conn
-from app.scoring import compute_score, compute_flags, compute_recommendation, generate_reasoning, SCORING_MODEL, _get_institutional_bonus, is_well_known_brand, is_consensus_tier
+from app.scoring import compute_score, compute_flags, compute_recommendation, generate_reasoning, compute_confidence, compute_caution_reason, SCORING_MODEL, _get_institutional_bonus, is_well_known_brand, is_consensus_tier
 from app.checklist import generate_checklist, checklist_summary
 from app.models.signals import (
     SignalBundle, DomainAgeSignal, SSLSignal, DNSSignal,
@@ -213,6 +213,12 @@ def main():
                 flags.append("ANCHOR_ONLY")
 
         recommendation = compute_recommendation(score, flags)
+        confidence = compute_confidence(signals, content_scorable=not content_unscorable)
+        caution_reason = compute_caution_reason(
+            signals, score, domain_age_days,
+            content_scorable=not content_unscorable,
+            confidence=confidence,
+        )
         reasoning = generate_reasoning(
             signals, score, recommendation,
             content_unscorable=content_unscorable,
@@ -244,6 +250,8 @@ def main():
             "trustScore": score,
             "scoringModel": SCORING_MODEL,
             "recommendation": recommendation,
+            "confidence": confidence,
+            "cautionReason": caution_reason,
             "reasoning": reasoning,
             "crawlability": "blocked" if content_unscorable else "ok",
             "brandTier": "well_known" if well_known else "scored",

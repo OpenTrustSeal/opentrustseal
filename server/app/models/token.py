@@ -42,6 +42,14 @@ class CheckResponse(BaseModel):
     site_category: str = Field(default="consumer", alias="siteCategory")
     jurisdiction: dict = Field(default_factory=dict)
     recommendation: str  # PROCEED, CAUTION, DENY
+    # "high" = all signals collected, "medium" = 1-2 gaps,
+    # "low" = 3+ signals missing. Tells agents how much to trust
+    # the score: a low-confidence CAUTION means "we need more data"
+    # not "this site is suspicious."
+    confidence: str = Field(default="high")
+    # Only set when recommendation is CAUTION. Explains WHY:
+    # "incomplete_evidence", "weak_signals", "new_domain", "infrastructure"
+    caution_reason: Optional[str] = Field(default=None, alias="cautionReason")
     reasoning: str
     # "ok" when the homepage fetched cleanly, "blocked" when the site
     # blocked our crawler (Cloudflare bot wall, residential IP filter,

@@ -360,6 +360,17 @@ async def _run_check_inner(domain: str) -> CheckResponse:
         if well_known:
             flags.append("ANCHOR_ONLY")
     recommendation = scoring.compute_recommendation(trust_score, flags)
+
+    confidence = scoring.compute_confidence(
+        signals, content_scorable=not content_unscorable,
+    )
+    caution_reason = scoring.compute_caution_reason(
+        signals, trust_score, domain_age_days,
+        content_scorable=not content_unscorable,
+        confidence=confidence,
+        site_category=getattr(content_result, '_site_category', 'consumer'),
+    )
+
     reasoning = scoring.generate_reasoning(
         signals, trust_score, recommendation,
         content_unscorable=content_unscorable,
@@ -432,6 +443,8 @@ async def _run_check_inner(domain: str) -> CheckResponse:
         siteCategory=site_category,
         jurisdiction=jurisdiction,
         recommendation=recommendation,
+        confidence=confidence,
+        cautionReason=caution_reason,
         reasoning=reasoning,
         crawlability="blocked" if content_unscorable else "ok",
         brandTier="well_known" if well_known else "scored",

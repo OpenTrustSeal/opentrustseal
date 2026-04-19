@@ -317,6 +317,89 @@ def compute_recommendation(score: int, flags: list[str]) -> str:
     return "DENY"
 
 
+def compute_confidence(
+    signals: SignalBundle,
+    content_scorable: bool = True,
+) -> str:
+    """Rate how complete the evidence is for this domain.
+
+    'high'   = all 6 signals collected with non-trivial scores.
+    'medium' = 4-5 signals have real data, 1-2 are missing or zero.
+    'low'    = 3 or fewer signals have real data. Score is based on
+               limited evidence and will likely change on a full-tier
+               re-check.
+
+    This is orthogonal to the trust score: a domain can score 75
+    (PROCEED) with low confidence (only 3 signals available), which
+    means the PROCEED should be treated cautiously until more evidence
+    is collected.
+    """
+    scores = [
+        signals.reputation.score,
+        signals.identity.score,
+        signals.domain_age.score,
+        signals.ssl.score,
+        signals.dns.score,
+    ]
+    # Content is special: if not scorable, it's a known gap, not a zero
+    if content_scorable:
+        scores.append(signals.content.score)
+
+    # Count signals with meaningful data (score > 0)
+    has_data = sum(1 for s in scores if s > 0)
+    total = len(scores)
+
+    if has_data >= total - 1:  # at most 1 missing
+        return "high"
+    elif has_data >= total - 2:  # at most 2 missing
+        return "medium"
+    else:
+        return "low"
+
+
+def compute_caution_reason(
+    signals: SignalBundle,
+    score: int,
+    domain_age_days: int,
+    content_scorable: bool = True,
+    confidence: str = "high",
+    site_category: str = "consumer",
+) -> str | None:
+    """Determine WHY a domain scored CAUTION. Returns None if not CAUTION.
+
+    Possible values:
+    - 'incomplete_evidence': fast-mode seed, content blocked, WHOIS
+      unavailable. Score limited by missing data, not bad data.
+    - 'weak_signals': we collected evidence and it's genuinely thin.
+      The site needs improvement (privacy policy, DMARC, etc).
+    - 'new_domain': domain registered less than 1 year ago. Time is
+      the missing signal.
+    - 'infrastructure': CDN, API, or tracking domain. Merchant trust
+      criteria don't fit well.
+    """
+    if score >= 75 or score < 40:
+        return None  # not CAUTION
+
+    # Infrastructure domains scored against merchant criteria
+    if site_category in ("infrastructure", "api_service"):
+        return "infrastructure"
+
+    # New domains (under 1 year)
+    if 0 <= domain_age_days < 365:
+        return "new_domain"
+
+    # Evidence gap: low confidence means we couldn't collect enough
+    if confidence == "low":
+        return "incomplete_evidence"
+
+    # Content specifically blocked
+    if not content_scorable and score < 75:
+        return "incomplete_evidence"
+
+    # Default: we saw the signals and they're weak
+    return "weak_signals"
+
+
 def generate_reasoning(
     signals: SignalBundle,
     score: int,
