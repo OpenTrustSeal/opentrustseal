@@ -55,13 +55,26 @@ DECODO_USER = _DECODO_ENV.get("DECODO_USER", "")
 DECODO_PASS = _DECODO_ENV.get("DECODO_PASS", "")
 DECODO_ENABLED = bool(DECODO_HOST and DECODO_PORT and DECODO_USER and DECODO_PASS)
 
-# Tier 4: residential Mac crawler reachable via Tailscale. Same fetch
-# service protocol as tier 2 (crawler box), just a different host. Shares
-# the crawler shared secret so the API box authenticates identically.
-# Enabled when the env file is present and both URL + secret are set.
+# Tier 4: residential Mac crawlers reachable via Tailscale. Same fetch
+# service protocol as tier 2 (crawler box), just different hosts on
+# residential IPs. Supports multiple residential endpoints for
+# geographic diversity and redundancy. The API box tries each one
+# in round-robin order, skipping any whose circuit breaker is open.
+#
+# Config format in /etc/opentrustseal/macbook.env:
+#   MACBOOK_URL=http://100.125.118.64:8901          (single, backward compat)
+#   RESIDENTIAL_URLS=http://100.x:8901,http://100.y:8901,http://100.z:8901
+#
 MACBOOK_URL = _MACBOOK_ENV.get("MACBOOK_URL", "")
 MACBOOK_SECRET = _MACBOOK_ENV.get("MACBOOK_SHARED_SECRET") or CRAWLER_SECRET
 MACBOOK_ENABLED = bool(MACBOOK_URL and MACBOOK_SECRET)
+
+# Multi-residential fleet: comma-separated list of Tailscale URLs
+_residential_urls_raw = _MACBOOK_ENV.get("RESIDENTIAL_URLS", "")
+RESIDENTIAL_URLS = [u.strip() for u in _residential_urls_raw.split(",") if u.strip()] if _residential_urls_raw else []
+if MACBOOK_URL and MACBOOK_URL not in RESIDENTIAL_URLS:
+    RESIDENTIAL_URLS.insert(0, MACBOOK_URL)
+RESIDENTIAL_ENABLED = bool(RESIDENTIAL_URLS and MACBOOK_SECRET)
 
 # Tier 5: Internet Archive Wayback Machine. When tiers 1-4 all fail, ask
 # the archive if it has a recent copy of the homepage. This works for
@@ -299,50 +312,71 @@ async def fetch_via_crawler_proxied(url: str, timeout_s: float = 45.0) -> Option
         return None
 
 
+# Round-robin index for residential fleet. Each call to fetch_via_macbook
+# tries the next residential URL in the list, skipping any with open
+# circuit breakers. This distributes load and IP-reputation pressure
+# across all residential endpoints.
+_residential_index = 0
+_residential_breakers: dict[str, _CircuitBreaker] = {}
+
+def _get_residential_breaker(url: str) -> _CircuitBreaker:
+    if url not in _residential_breakers:
+        _residential_breakers[url] = _CircuitBreaker(threshold=2, window=30.0, cooldown=120.0)
+    return _residential_breakers[url]
+
+
 async def fetch_via_macbook(url: str, timeout_s: float = 40.0) -> Optional[CrawlerResponse]:
-    """Tier 4 fetch: residential Mac Air crawler reachable over Tailscale.
+    """Tier 4 fetch: residential Mac crawlers reachable over Tailscale.
 
-    Physical hardware on a Charter/Spectrum residential connection. Real
-    browser fingerprint from AS20001 rather than any datacenter AS. Free
-    (no proxy metering) but may be offline, asleep, or traveling with the
-    user -- short breaker window and short cooldown so outages don't
-    leave tier 4 disabled any longer than necessary.
+    Tries each residential endpoint in round-robin order, skipping any
+    whose circuit breaker is open. Supports a fleet of Macs at different
+    residences (different ISPs, different IP reputations) for geographic
+    diversity against CF Enterprise Bot Management.
 
-    Intended last-ditch crawl attempt for sites that tier 3 (Decodo
-    residential proxy) couldn't reach. Sites behind Cloudflare Enterprise
-    Bot Management (chewy, crate, petco, kohls, macys) still get 403
-    responses from this tier until we solve real-Chrome fingerprint
-    stealth -- for now those rely on Phase 1 well-known brand anchor.
+    Falls back to the single MACBOOK_URL if no RESIDENTIAL_URLS are
+    configured (backward compatible).
     """
-    if not MACBOOK_ENABLED:
+    global _residential_index
+
+    urls = RESIDENTIAL_URLS if RESIDENTIAL_ENABLED else ([MACBOOK_URL] if MACBOOK_ENABLED else [])
+    if not urls:
         COUNTERS["tier4_disabled"] += 1
         return None
-    if _breaker_tier4.is_open():
-        COUNTERS["tier4_skipped_breaker"] += 1
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=timeout_s) as client:
-            r = await client.post(
-                f"{MACBOOK_URL}/fetch",
-                json={
-                    "url": url,
-                    "timeout_ms": int(timeout_s * 1000) - 5000,
-                    "wait_until": "domcontentloaded",
-                },
-                headers={"X-Crawler-Secret": MACBOOK_SECRET},
-            )
-        if r.status_code != 200:
-            _breaker_tier4.record_error()
-            COUNTERS["tier4_error"] += 1
-            return None
-        body = r.json()
-        if body.get("error"):
-            return None
-        _breaker_tier4.record_success()
-        COUNTERS["tier4_ok"] += 1
-        return CrawlerResponse(body)
-    except Exception:
-        _breaker_tier4.record_error()
+
+    # Try each residential endpoint starting from the round-robin index
+    for attempt in range(len(urls)):
+        idx = (_residential_index + attempt) % len(urls)
+        endpoint = urls[idx]
+        breaker = _get_residential_breaker(endpoint)
+
+        if breaker.is_open():
+            continue
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout_s) as client:
+                r = await client.post(
+                    f"{endpoint}/fetch",
+                    json={
+                        "url": url,
+                        "timeout_ms": int(timeout_s * 1000) - 5000,
+                        "wait_until": "domcontentloaded",
+                    },
+                    headers={"X-Crawler-Secret": MACBOOK_SECRET},
+                )
+            _residential_index = (idx + 1) % len(urls)  # advance round-robin
+
+            if r.status_code != 200:
+                breaker.record_error()
+                COUNTERS["tier4_error"] += 1
+                continue
+            body = r.json()
+            if body.get("error"):
+                continue
+            breaker.record_success()
+            COUNTERS["tier4_ok"] += 1
+            return CrawlerResponse(body)
+        except Exception:
+            breaker.record_error()
         COUNTERS["tier4_error"] += 1
         return None
 
