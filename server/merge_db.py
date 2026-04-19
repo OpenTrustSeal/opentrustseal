@@ -130,9 +130,11 @@ def merge(source_path: str, target_path: str, dry_run: bool = False) -> dict:
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 merge_db.py /path/to/source.db [--target target.db] [--dry-run]")
+        print("       python3 merge_db.py /path/to/dir/ [--target target.db] [--dry-run]")
+        print("       (directory mode merges all ots-*.db files in the dir)")
         sys.exit(1)
 
-    source = sys.argv[1]
+    source_arg = sys.argv[1]
     target = str(Path(os.environ.get("OTS_DB_PATH", "./data/ots.db")))
     dry_run = "--dry-run" in sys.argv
 
@@ -140,22 +142,44 @@ def main():
         if arg == "--target" and i + 1 < len(sys.argv):
             target = sys.argv[i + 1]
 
-    if not Path(source).exists():
-        print(f"Source DB not found: {source}")
-        sys.exit(1)
+    # Support directory mode: merge all ots-*.db files in a directory
+    import glob
+    if Path(source_arg).is_dir():
+        sources = sorted(glob.glob(str(Path(source_arg) / "ots-*.db")))
+        if not sources:
+            print(f"No ots-*.db files found in {source_arg}")
+            sys.exit(1)
+        print(f"Directory mode: found {len(sources)} DB files in {source_arg}")
+    else:
+        sources = [source_arg]
+
     if not Path(target).exists():
-        print(f"Target DB not found: {target}")
-        sys.exit(1)
+        # Create target with schema
+        print(f"Target {target} does not exist, creating...")
+        tgt = sqlite3.connect(target)
+        tgt.execute("PRAGMA journal_mode=WAL")
+        tgt.execute("CREATE TABLE IF NOT EXISTS domains (domain TEXT PRIMARY KEY, first_checked_at TEXT, last_checked_at TEXT, check_count INTEGER DEFAULT 1, is_registered INTEGER DEFAULT 0)")
+        tgt.execute("CREATE TABLE IF NOT EXISTS raw_signals (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT, checked_at TEXT, signal_data TEXT)")
+        tgt.execute("CREATE TABLE IF NOT EXISTS scored_results (domain TEXT PRIMARY KEY, response_json TEXT, trust_score INTEGER, recommendation TEXT, scoring_model TEXT, checked_at TEXT, expires_at TEXT)")
+        tgt.execute("CREATE TABLE IF NOT EXISTS score_history (id INTEGER PRIMARY KEY AUTOINCREMENT, domain TEXT, trust_score INTEGER, recommendation TEXT, signal_scores TEXT, checked_at TEXT)")
+        tgt.commit()
+        tgt.close()
 
     banner = "DRY-RUN: " if dry_run else ""
-    print(f"{banner}Merging {source} -> {target}")
-    print()
+    grand_total = 0
 
-    counts = merge(source, target, dry_run)
+    for source in sources:
+        if not Path(source).exists():
+            print(f"  SKIP: {source} not found")
+            continue
+        print(f"{banner}Merging {source} -> {target}")
+        counts = merge(source, target, dry_run)
+        total_new = sum(v.get("new", v.get("merged", 0)) for v in counts.values())
+        grand_total += total_new
+        print(f"  subtotal: {total_new} new rows")
+        print()
 
-    print()
-    total_new = sum(v.get("new", v.get("merged", 0)) for v in counts.values())
-    print(f"{'Would merge' if dry_run else 'Merged'}: {total_new} total new rows")
+    print(f"{'Would merge' if dry_run else 'Merged'}: {grand_total} total new rows across {len(sources)} source(s)")
     if dry_run:
         print("Remove --dry-run to execute.")
 

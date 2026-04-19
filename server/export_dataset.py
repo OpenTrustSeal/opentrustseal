@@ -35,6 +35,54 @@ from pathlib import Path
 DB_PATH = Path(os.environ.get("OTS_DB_PATH", "./data/ots.db"))
 
 
+def _tranco_bucket(rep_score: int) -> str:
+    """Map reputation score back to approximate Tranco bucket.
+
+    The reputation score is derived from a log curve over Tranco rank.
+    We reverse it into human-readable buckets for the export so
+    downloaders can stratify the dataset by site popularity.
+    """
+    if not rep_score or rep_score == "":
+        return "unknown"
+    try:
+        s = int(rep_score)
+    except (ValueError, TypeError):
+        return "unknown"
+    if s >= 97: return "top-100"
+    if s >= 94: return "top-1K"
+    if s >= 91: return "top-5K"
+    if s >= 89: return "top-10K"
+    if s >= 86: return "top-50K"
+    if s >= 85: return "top-100K"
+    if s >= 83: return "top-500K"
+    if s >= 80: return "top-1M"
+    if s >= 70: return "unlisted-clean"
+    return "unlisted"
+
+
+def _signal_completeness(signals: dict) -> str:
+    """Rate how complete the signal data is for this domain.
+
+    'full' = all 6 signals have non-zero scores
+    'partial' = some signals are zero or missing (e.g., content blocked)
+    'minimal' = 3+ signals are zero
+    """
+    scores = []
+    for key in ["reputation", "identity", "content", "domainAge", "ssl", "dns"]:
+        s = signals.get(key, {}).get("score", 0)
+        try:
+            scores.append(int(s) if s != "" else 0)
+        except (ValueError, TypeError):
+            scores.append(0)
+    zeros = sum(1 for s in scores if s == 0)
+    if zeros == 0:
+        return "full"
+    elif zeros <= 2:
+        return "partial"
+    else:
+        return "minimal"
+
+
 def load_scored_results(db_path: Path) -> list[dict]:
     """Read all scored results and flatten into export rows."""
     conn = sqlite3.connect(str(db_path))
@@ -86,6 +134,11 @@ def load_scored_results(db_path: Path) -> list[dict]:
             "reputation_spamListed": signals.get("reputation", {}).get("spamListed", ""),
             # Flags
             "flags": "|".join(resp.get("flags", [])),
+            # Provenance fields (explain WHY a domain scored the way it did)
+            "crawlMode": "fast" if row["scoring_model"] and "v1.3" in row["scoring_model"] else "full",
+            "contentScorable": "no" if "CONTENT_UNSCORABLE" in resp.get("flags", []) else "yes",
+            "trancoBucket": _tranco_bucket(signals.get("reputation", {}).get("score", 0)),
+            "signalCompleteness": _signal_completeness(signals),
         })
 
     return results
@@ -102,6 +155,7 @@ CSV_FIELDS = [
     "content_privacyPolicy", "content_termsOfService", "content_contactInfo",
     "reputation_malware", "reputation_phishing", "reputation_spamListed",
     "flags",
+    "crawlMode", "contentScorable", "trancoBucket", "signalCompleteness",
 ]
 
 

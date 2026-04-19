@@ -252,6 +252,17 @@ def parse_args() -> dict:
 async def main() -> int:
     cfg = parse_args()
 
+    # ---- Per-process DB isolation -----------------------------------------
+    # Multiple crawl_seed processes running on the same box must NOT share
+    # a SQLite file. Concurrent writes from separate processes corrupt the
+    # database (we lost 11 of 19 DBs to this in the first seed run).
+    # Each process gets its own DB file named by PID. The post-seed merge
+    # script collects all per-process DBs and merges them.
+    pid = os.getpid()
+    db_path = Path(os.environ.get("OTS_DATA_DIR", "./data")) / f"ots-{pid}.db"
+    os.environ["OTS_DB_PATH"] = str(db_path)
+    print(f"DB: {db_path}", flush=True)
+
     # ---- Fast mode: optimize for coverage over completeness ---------------
     # Caps WHOIS at 5s (instead of 30s), disables Playwright tiers 2-4
     # (which each add 30-60s of timeout on failure), keeps tier 1 direct
