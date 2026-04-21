@@ -17,6 +17,7 @@ from ..fetch_escalation import (
     fetch_via_crawler_proxied,
     fetch_via_macbook,
     fetch_via_wayback,
+    fetch_via_commercial_scraper,
     fetch_via_protocol_probe,
     CrawlerResponse,
 )
@@ -223,6 +224,16 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
     """
     import time as _time
 
+    def _note_tier_success():
+        """Reset the tier 6 strike counter on any tier-1-through-5 success.
+        Cheap non-critical DB write; swallow errors so scoring isn't
+        blocked by a transient gate-table issue."""
+        try:
+            from .. import tier6_gate
+            tier6_gate.record_success(domain)
+        except Exception:
+            pass
+
     effective_host = await _resolve_effective_host(domain)
 
     attempts = [_CHROME_HEADERS, _SAFARI_HEADERS]
@@ -266,6 +277,7 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
                             transient = True
                             last_response = resp
                             break  # exit retry loop, fall to escalation
+                    _note_tier_success()
                     return resp, response_time_ms, False
 
                 # Server responded but with an error status
@@ -303,6 +315,7 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
     if transient:
         probe_resp = await fetch_via_protocol_probe(f"https://{effective_host}/")
         if probe_resp is not None and probe_resp.status_code < 400:
+            _note_tier_success()
             return probe_resp, response_time_ms, False
 
     # Tier 2: escalate to the crawler service (real headless Chromium on
@@ -312,6 +325,7 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
     if transient:
         crawler_resp = await fetch_via_crawler(f"https://{effective_host}/")
         if crawler_resp is not None and crawler_resp.status_code < 400:
+            _note_tier_success()
             return crawler_resp, response_time_ms, False
 
         # Tier 3: Playwright-via-Decodo-residential-proxy. Fresh rotating
@@ -322,6 +336,7 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
         # scoring from non-content signals).
         proxied_resp = await fetch_via_crawler_proxied(f"https://{effective_host}/")
         if proxied_resp is not None and proxied_resp.status_code < 400:
+            _note_tier_success()
             return proxied_resp, response_time_ms, False
 
         # Tier 4: residential Mac Air over Tailscale. Physical hardware
@@ -334,6 +349,7 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
         # alternatives tracked in Task 19.
         macbook_resp = await fetch_via_macbook(f"https://{effective_host}/")
         if macbook_resp is not None and macbook_resp.status_code < 400:
+            _note_tier_success()
             return macbook_resp, response_time_ms, False
 
         # Tier 5: Internet Archive Wayback Machine. When every live-fetch
@@ -348,10 +364,35 @@ async def _fetch_homepage(domain: str) -> tuple[httpx.Response | None, int, bool
         # any content at all on otherwise-blocked sites.
         wayback_resp = await fetch_via_wayback(f"https://{effective_host}/")
         if wayback_resp is not None and wayback_resp.status_code < 400:
+            _note_tier_success()
             return wayback_resp, response_time_ms, False
 
-        # Every tier failed -- fall through as transient so the pipeline
-        # reuses last-good history or marks unscorable.
+        # Tier 6: commercial scraper API (Bright Data Web Unlocker by
+        # default). Gated behind a 3-strike accumulator so we only pay
+        # for domains that have genuinely defeated every other tier
+        # across multiple re-crawl cycles. Ships dark unless
+        # SCRAPER_ENABLED is true in scraper.env. See the integration
+        # spec for the cost model and the 3-strike rationale.
+        scraper_resp = await fetch_via_commercial_scraper(
+            f"https://{effective_host}/", domain
+        )
+        if scraper_resp is not None and scraper_resp.status_code < 400:
+            return scraper_resp, response_time_ms, False
+
+        # Every tier failed. Record a strike against the tier 6 gate so
+        # this domain progresses toward commercial-scraper eligibility on
+        # the next re-crawl. Cheap enough to unconditionally call; the
+        # gate module is a single INSERT/UPDATE.
+        try:
+            from .. import tier6_gate
+            tier6_gate.record_strike(domain)
+        except Exception:
+            # Strike accounting is non-critical. Don't let a DB hiccup
+            # fail an otherwise-successful content_check.
+            pass
+
+        # Fall through as transient so the pipeline reuses last-good
+        # history or marks unscorable.
         return None, response_time_ms, True
 
     return last_response if last_response and last_response.status_code < 400 else None, response_time_ms, transient

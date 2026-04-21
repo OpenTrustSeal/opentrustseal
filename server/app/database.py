@@ -118,6 +118,43 @@ def init_db() -> None:
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
+            -- Tier 6 strike accumulator. A domain accumulates a strike each
+            -- time tiers 1-5 all fail for it. Tier 6 (commercial scraper)
+            -- only fires after SCRAPER_GATE_STRIKES consecutive strikes.
+            -- Any tier success resets strike_count to 0. See the tier 6
+            -- integration spec at docs/TIER-6-COMMERCIAL-SCRAPER-SPEC.md.
+            CREATE TABLE IF NOT EXISTS tier6_gate (
+                domain TEXT PRIMARY KEY,
+                strike_count INTEGER DEFAULT 0,
+                last_strike_at TEXT,
+                last_success_at TEXT,
+                last_tier6_called_at TEXT,
+                tier6_call_count INTEGER DEFAULT 0,
+                last_tier6_status INTEGER
+            );
+
+            -- Outcome feedback from agents and merchants. Feeds the
+            -- calibration dataset described in CLAUDE.md item #15. Schema
+            -- supports two feedback sources:
+            --   source='agent'     -> transaction outcome reports from API consumers
+            --   source='merchant'  -> score-correction reports from registered domain owners
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                domain TEXT NOT NULL,
+                check_id TEXT,
+                source TEXT NOT NULL,
+                outcome TEXT NOT NULL,
+                detail TEXT,
+                submitter_type TEXT,
+                submitter_contact TEXT,
+                ip_address TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_feedback_domain
+                ON feedback(domain);
+            CREATE INDEX IF NOT EXISTS idx_feedback_created
+                ON feedback(created_at);
+
             -- Migration: if old 'checks' table exists, migrate data
             CREATE TABLE IF NOT EXISTS _migration_done (id INTEGER PRIMARY KEY);
         """)
@@ -419,4 +456,174 @@ def get_stats() -> dict:
         "rawSignalRecords": raw_count,
         "averageScore": round(avg_score, 1) if avg_score else 0,
         "byRecommendation": {row[0]: row[1] for row in by_rec},
+    }
+
+
+def store_feedback(
+    domain: str,
+    source: str,
+    outcome: str,
+    check_id: str | None = None,
+    detail: str | None = None,
+    submitter_type: str | None = None,
+    submitter_contact: str | None = None,
+    ip_address: str | None = None,
+) -> int:
+    """Insert one feedback row. Returns the generated feedback id.
+
+    Feedback is the calibration dataset's raw input. Do not over-validate
+    here; the endpoint layer validates shape. Trust the caller on content.
+    """
+    with _get_conn() as conn:
+        cursor = conn.execute(
+            """INSERT INTO feedback
+                   (domain, check_id, source, outcome, detail,
+                    submitter_type, submitter_contact, ip_address)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (domain, check_id, source, outcome, detail,
+             submitter_type, submitter_contact, ip_address),
+        )
+        return cursor.lastrowid
+
+
+def get_feedback_summary(domain: str, limit: int = 50) -> dict:
+    """Return aggregated feedback for a domain, suitable for the dashboard."""
+    with _get_conn() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) FROM feedback WHERE domain = ?", (domain,)
+        ).fetchone()[0]
+        by_outcome = conn.execute(
+            """SELECT source, outcome, COUNT(*) AS n
+               FROM feedback WHERE domain = ?
+               GROUP BY source, outcome""",
+            (domain,),
+        ).fetchall()
+        recent = conn.execute(
+            """SELECT source, outcome, detail, created_at
+               FROM feedback WHERE domain = ?
+               ORDER BY id DESC LIMIT ?""",
+            (domain, limit),
+        ).fetchall()
+
+    counts: dict = {}
+    for row in by_outcome:
+        counts.setdefault(row["source"], {})[row["outcome"]] = row["n"]
+
+    return {
+        "domain": domain,
+        "total": total,
+        "bySource": counts,
+        "recent": [
+            {
+                "source": r["source"],
+                "outcome": r["outcome"],
+                "detail": r["detail"],
+                "createdAt": r["created_at"],
+            }
+            for r in recent
+        ],
+    }
+
+
+def get_coverage(domain: str) -> dict:
+    """Check if a domain is in the scored dataset.
+
+    Returns the minimum useful surface for the merchant-facing "is my
+    domain in the dataset" self-serve check: whether we have a score,
+    the scoring model that produced it, last-checked timestamp, and the
+    headline recommendation. Does NOT return the full signed bundle;
+    that is what /v1/check is for.
+    """
+    domain = (domain or "").strip().lower()
+    if not domain:
+        return {"inDataset": False, "domain": domain}
+
+    with _get_conn() as conn:
+        row = conn.execute(
+            """SELECT trust_score, recommendation, scoring_model, checked_at,
+                      json_extract(response_json, '$.confidence') AS confidence,
+                      json_extract(response_json, '$.cautionReason') AS caution_reason
+               FROM scored_results WHERE domain = ?""",
+            (domain,),
+        ).fetchone()
+
+    if row is None:
+        return {"inDataset": False, "domain": domain}
+
+    return {
+        "inDataset": True,
+        "domain": domain,
+        "trustScore": row["trust_score"],
+        "recommendation": row["recommendation"],
+        "scoringModel": row["scoring_model"],
+        "checkedAt": row["checked_at"],
+        "confidence": row["confidence"] or "unknown",
+        "cautionReason": row["caution_reason"],
+    }
+
+
+def get_dataset_stats() -> dict:
+    """Dataset-shaped stats: breakdowns by confidence and cautionReason.
+
+    Extracts confidence and cautionReason from response_json. Used by the
+    dataset publication card, merchant outreach targeting, and health
+    monitors that want to see how much of the registry is agent-usable
+    vs incomplete-evidence vs actually-weak.
+    """
+    with _get_conn() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM scored_results").fetchone()[0]
+
+        rec_by_conf = conn.execute("""
+            SELECT
+                recommendation,
+                COALESCE(json_extract(response_json, '$.confidence'), 'unknown') AS confidence,
+                COUNT(*) AS n
+            FROM scored_results
+            GROUP BY recommendation, confidence
+        """).fetchall()
+
+        by_caution_reason = conn.execute("""
+            SELECT
+                COALESCE(json_extract(response_json, '$.cautionReason'), 'not_caution') AS reason,
+                COUNT(*) AS n
+            FROM scored_results
+            WHERE recommendation = 'CAUTION'
+            GROUP BY reason
+        """).fetchall()
+
+        by_brand_tier = conn.execute("""
+            SELECT
+                COALESCE(json_extract(response_json, '$.brandTier'), 'scored') AS brand_tier,
+                COUNT(*) AS n
+            FROM scored_results
+            GROUP BY brand_tier
+        """).fetchall()
+
+        agent_safe = conn.execute("""
+            SELECT COUNT(*) FROM scored_results
+            WHERE recommendation = 'PROCEED'
+              AND COALESCE(json_extract(response_json, '$.confidence'), 'high') != 'low'
+        """).fetchone()[0]
+
+        incomplete_evidence = conn.execute("""
+            SELECT COUNT(*) FROM scored_results
+            WHERE json_extract(response_json, '$.cautionReason') = 'incomplete_evidence'
+        """).fetchone()[0]
+
+    confidence_totals = {}
+    recommendation_x_confidence = {}
+    for rec, conf, n in rec_by_conf:
+        confidence_totals[conf] = confidence_totals.get(conf, 0) + n
+        recommendation_x_confidence.setdefault(rec, {})[conf] = n
+
+    return {
+        "totalDomains": total,
+        "agentSafe": agent_safe,
+        "agentSafePercent": round(agent_safe / total * 100, 1) if total else 0,
+        "incompleteEvidence": incomplete_evidence,
+        "incompleteEvidencePercent": round(incomplete_evidence / total * 100, 1) if total else 0,
+        "byConfidence": confidence_totals,
+        "byCautionReason": {row[0]: row[1] for row in by_caution_reason},
+        "byBrandTier": {row[0]: row[1] for row in by_brand_tier},
+        "recommendationByConfidence": recommendation_x_confidence,
     }

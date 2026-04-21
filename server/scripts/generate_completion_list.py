@@ -9,6 +9,7 @@ Usage:
     python3 generate_completion_list.py /path/to/data/          # scan dir
     python3 generate_completion_list.py /path/to/merged.db      # single DB
     python3 generate_completion_list.py /path/to/data/ --out completion.txt
+    python3 generate_completion_list.py /path/to/data/ --dry-run  # counts only, no file
 
 Criteria for inclusion in the completion list:
 1. Content score is 0 (content fetch failed or was skipped)
@@ -107,11 +108,12 @@ def scan_db(db_path: str) -> dict:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 generate_completion_list.py /path/to/data/ [--out file.txt]")
+        print("Usage: python3 generate_completion_list.py /path/to/data/ [--out file.txt] [--dry-run]")
         sys.exit(1)
 
     source = sys.argv[1]
     out_file = "completion-domains.txt"
+    dry_run = "--dry-run" in sys.argv
 
     for i, arg in enumerate(sys.argv):
         if arg == "--out" and i + 1 < len(sys.argv):
@@ -144,13 +146,15 @@ def main():
             if domain not in all_incomplete:
                 all_incomplete[domain] = info
 
-    # Write domain list
     domains = sorted(all_incomplete.keys())
-    with open(out_file, "w") as f:
-        f.write("\n".join(domains))
 
-    print(f"\nIncomplete domains: {len(domains)}")
-    print(f"Written to: {out_file}")
+    if dry_run:
+        print(f"\n[DRY RUN] Incomplete domains: {len(domains)} (no file written)")
+    else:
+        with open(out_file, "w") as f:
+            f.write("\n".join(domains))
+        print(f"\nIncomplete domains: {len(domains)}")
+        print(f"Written to: {out_file}")
 
     # Summary of WHY they're incomplete
     reasons = {}
@@ -160,7 +164,22 @@ def main():
 
     print("\nGap distribution:")
     for reason, count in sorted(reasons.items(), key=lambda x: -x[1]):
-        print(f"  {reason}: {count:,}")
+        pct = (count / len(domains) * 100) if domains else 0
+        print(f"  {reason}: {count:,} ({pct:.1f}% of incomplete)")
+
+    # Score distribution of the incomplete set (validates the selector is narrow)
+    score_buckets = {"DENY (<40)": 0, "CAUTION (40-74)": 0, "PROCEED (75+)": 0}
+    for info in all_incomplete.values():
+        s = info.get("score", 0)
+        if s < 40:
+            score_buckets["DENY (<40)"] += 1
+        elif s < 75:
+            score_buckets["CAUTION (40-74)"] += 1
+        else:
+            score_buckets["PROCEED (75+)"] += 1
+    print("\nScore distribution of incomplete set:")
+    for bucket, count in score_buckets.items():
+        print(f"  {bucket}: {count:,}")
 
 
 if __name__ == "__main__":

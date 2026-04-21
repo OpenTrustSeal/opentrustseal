@@ -44,6 +44,7 @@ def _load_env_file(path: str) -> dict:
 _CRAWLER_ENV = _load_env_file("/etc/opentrustseal/crawler.env")
 _DECODO_ENV = _load_env_file("/etc/opentrustseal/decodo.env")
 _MACBOOK_ENV = _load_env_file("/etc/opentrustseal/macbook.env")
+_SCRAPER_ENV = _load_env_file("/etc/opentrustseal/scraper.env")
 
 CRAWLER_URL = _CRAWLER_ENV.get("CRAWLER_URL") or os.environ.get("OTS_CRAWLER_URL", "")
 CRAWLER_SECRET = _CRAWLER_ENV.get("CRAWLER_SHARED_SECRET") or os.environ.get("OTS_CRAWLER_SECRET", "")
@@ -115,6 +116,32 @@ WAYBACK_MAX_AGE_DAYS = int(os.environ.get("OTS_WAYBACK_MAX_AGE_DAYS", "60"))
 PROBE_ENABLED = os.environ.get("OTS_ENABLE_PROBE_TIER", "").lower() in ("1", "true", "yes", "on")
 PROBE_PATH = os.environ.get("OTS_PROBE_PATH", "/.well-known/security.txt")
 
+# Commercial scraper tier. Runs AFTER wayback as the last-resort rescue
+# for the residual tail (petco-on-Spectrum, kohls-anywhere, etc). Gated
+# behind a strike counter in the tier6_gate table so we only pay for
+# domains that have genuinely defeated every other tier across multiple
+# re-crawl cycles. See docs/TIER-6-COMMERCIAL-SCRAPER-SPEC.md.
+#
+# Provider selection is a string in SCRAPER_PROVIDER. Currently supports
+# "brightdata". Add "zenrows" or "scraperapi" by implementing the
+# corresponding _fetch_via_<provider> adapter below and dispatching in
+# fetch_via_commercial_scraper.
+#
+# Ships dark: SCRAPER_ENABLED is false by default even if an API key is
+# configured. Flip to true in /etc/opentrustseal/scraper.env after
+# validating in shadow mode.
+SCRAPER_PROVIDER = _SCRAPER_ENV.get("SCRAPER_PROVIDER", "").lower().strip()
+SCRAPER_API_KEY = _SCRAPER_ENV.get("SCRAPER_API_KEY", "").strip()
+SCRAPER_ZONE = _SCRAPER_ENV.get("SCRAPER_ZONE", "").strip()
+SCRAPER_CUSTOMER_ID = _SCRAPER_ENV.get("SCRAPER_CUSTOMER_ID", "").strip()
+SCRAPER_ENABLED = (
+    _SCRAPER_ENV.get("SCRAPER_ENABLED", "false").lower() in ("1", "true", "yes", "on")
+    and bool(SCRAPER_API_KEY)
+    and bool(SCRAPER_PROVIDER)
+)
+SCRAPER_GATE_STRIKES = int(_SCRAPER_ENV.get("SCRAPER_GATE_STRIKES", "3"))
+SCRAPER_TIMEOUT_S = float(_SCRAPER_ENV.get("SCRAPER_TIMEOUT_S", "60"))
+
 
 class _CircuitBreaker:
     """Simple count-based breaker: after N errors in WINDOW seconds, open
@@ -165,6 +192,12 @@ _breaker_tier5 = _CircuitBreaker(threshold=4, window=60.0, cooldown=180.0)
 # cooldown so a transient DNS or network blip doesn't disable the probe
 # for long.
 _breaker_probe = _CircuitBreaker(threshold=4, window=60.0, cooldown=120.0)
+# Scraper breaker: generous window and long cooldown because a failed
+# commercial-scraper call costs real money. If 5 calls fail in 5 minutes
+# something is genuinely wrong (API key revoked, commercial provider
+# outage, our account hit a quota). Cool down 10 min so we don't burn
+# through budget on failing calls.
+_breaker_scraper = _CircuitBreaker(threshold=5, window=300.0, cooldown=600.0)
 
 # Counters for /stats endpoint visibility
 COUNTERS = {
@@ -190,6 +223,11 @@ COUNTERS = {
     "probe_skipped_breaker": 0,
     "probe_disabled": 0,
     "probe_no_body": 0,
+    "scraper_ok": 0,
+    "scraper_error": 0,
+    "scraper_skipped_breaker": 0,
+    "scraper_skipped_gate": 0,
+    "scraper_disabled": 0,
 }
 
 
@@ -611,6 +649,122 @@ async def fetch_via_protocol_probe(url: str, timeout_s: float = 15.0) -> Optiona
         return None
 
 
+_REALISTIC_CHROME_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
+
+
+async def _fetch_via_brightdata(url: str, timeout_s: float) -> Optional[CrawlerResponse]:
+    """Bright Data Web Unlocker adapter.
+
+    Bright Data exposes Web Unlocker as an HTTP proxy. The proxy handles
+    captcha solving, IP rotation, and fingerprint matching internally; we
+    just point httpx at it. Credentials go in the proxy URL per Bright
+    Data's docs.
+    """
+    if not SCRAPER_CUSTOMER_ID or not SCRAPER_ZONE:
+        return None
+    proxy_url = (
+        f"http://brd-customer-{SCRAPER_CUSTOMER_ID}-zone-{SCRAPER_ZONE}:"
+        f"{SCRAPER_API_KEY}@brd.superproxy.io:22225"
+    )
+    try:
+        async with httpx.AsyncClient(
+            proxy=proxy_url,
+            timeout=timeout_s,
+            verify=False,  # Bright Data intercepts TLS with their own cert
+            follow_redirects=True,
+        ) as client:
+            r = await client.get(
+                url,
+                headers={
+                    "User-Agent": _REALISTIC_CHROME_UA,
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+            )
+            return CrawlerResponse({
+                "status": r.status_code,
+                "body": r.text[:500_000],
+                "headers": dict(r.headers),
+                "final_url": str(r.url),
+                "redirect_count": len(r.history),
+                "elapsed_ms": int(r.elapsed.total_seconds() * 1000) if r.elapsed else 0,
+                "fetched_via": "scraper-brightdata",
+            })
+    except Exception:
+        return None
+
+
+async def fetch_via_commercial_scraper(
+    url: str,
+    domain: str,
+    timeout_s: float = 0.0,
+) -> Optional[CrawlerResponse]:
+    """Tier 6: last-resort commercial scraper API.
+
+    Gated behind a strike counter in the tier6_gate table. Only fires if
+    the domain has failed tiers 1-5 on >= SCRAPER_GATE_STRIKES separate
+    re-crawl cycles since its last success. Feature-flagged off by
+    default via SCRAPER_ENABLED.
+
+    domain parameter is required separately from url because the gate
+    state is keyed on the canonical domain, not the full URL (which
+    might include paths, trailing slashes, www prefixes, etc).
+
+    Returns None if disabled, gated, breaker-open, or the provider
+    returns an error. Returns a CrawlerResponse on any HTTP response
+    from the provider -- even 4xx/5xx -- so the caller can decide
+    whether to use the content.
+    """
+    # Local import to avoid circular dependency at module load
+    from . import tier6_gate
+
+    if not SCRAPER_ENABLED:
+        COUNTERS["scraper_disabled"] += 1
+        return None
+
+    if _breaker_scraper.is_open():
+        COUNTERS["scraper_skipped_breaker"] += 1
+        return None
+
+    strikes = tier6_gate.get_strike_count(domain)
+    if strikes < SCRAPER_GATE_STRIKES:
+        COUNTERS["scraper_skipped_gate"] += 1
+        return None
+
+    t_s = timeout_s if timeout_s > 0 else SCRAPER_TIMEOUT_S
+
+    if SCRAPER_PROVIDER == "brightdata":
+        resp = await _fetch_via_brightdata(url, t_s)
+    else:
+        # Additional providers can be added here (zenrows, scraperapi, etc).
+        COUNTERS["scraper_disabled"] += 1
+        return None
+
+    status_for_audit = resp.status_code if resp is not None else None
+    tier6_gate.record_tier6_call(domain, status=status_for_audit)
+
+    if resp is None:
+        _breaker_scraper.record_error()
+        COUNTERS["scraper_error"] += 1
+        return None
+
+    if resp.status_code >= 200 and resp.status_code < 400:
+        _breaker_scraper.record_success()
+        COUNTERS["scraper_ok"] += 1
+        tier6_gate.record_success(domain)
+        return resp
+
+    # Non-2xx/3xx response. Don't treat as breaker-tripping error (the
+    # provider did its job, the origin said no) but count as scraper_error
+    # so we can see the ratio in /stats.
+    COUNTERS["scraper_error"] += 1
+    return resp
+
+
 def stats() -> dict:
     """Snapshot of fetch tier counters, safe to expose in /stats."""
     return {
@@ -627,6 +781,10 @@ def stats() -> dict:
         "probe_enabled": PROBE_ENABLED,
         "probe_breaker_open": _breaker_probe.is_open(),
         "probe_path": PROBE_PATH,
+        "scraper_enabled": SCRAPER_ENABLED,
+        "scraper_provider": SCRAPER_PROVIDER if SCRAPER_ENABLED else None,
+        "scraper_breaker_open": _breaker_scraper.is_open(),
+        "scraper_gate_strikes": SCRAPER_GATE_STRIKES,
         "crawler_url": CRAWLER_URL if CRAWLER_ENABLED else None,
         "decodo_host": DECODO_HOST if DECODO_ENABLED else None,
         "macbook_url": MACBOOK_URL if MACBOOK_ENABLED else None,
