@@ -37,6 +37,12 @@ Every row represents a trust assessment of a web domain, scored across six signa
 | `reputation_phishing` | bool | Flagged for phishing |
 | `reputation_spamListed` | bool | Listed on spam blocklists |
 | `flags` | string | Pipe-separated flags (e.g., "WELL_KNOWN_BRAND") |
+| `crawlMode` | string | "fast" (seed pass, no Playwright) or "full" (all tiers) |
+| `contentScorable` | string | "yes" (content fetched) or "no" (bot protection blocked fetch) |
+| `trancoBucket` | string | Approximate Tranco rank bucket: "top-100", "top-1K", "top-10K", "top-100K", "top-500K", "top-1M", "unlisted-clean", "unlisted" |
+| `signalCompleteness` | string | "full" (all 6 signals), "partial" (1-2 gaps), "minimal" (3+ gaps) |
+| `confidence` | string | "high" (comprehensive evidence), "medium" (some gaps), "low" (limited evidence) |
+| `cautionReason` | string | Why CAUTION was assigned: "incomplete_evidence", "weak_signals", "new_domain", "infrastructure". Empty if not CAUTION. |
 
 ### Formats
 

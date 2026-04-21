@@ -67,6 +67,14 @@ h3{font-size:0.95rem;font-weight:600;margin-bottom:0.25rem;color:var(--text-ligh
 .score-meta .rec.proceed{background:var(--green-light);color:var(--green-dark)}
 .score-meta .rec.caution{background:var(--amber-light);color:var(--amber-dark)}
 .score-meta .rec.deny{background:var(--red-light);color:var(--red)}
+.score-meta .conf-badge{display:inline-block;font-size:0.72rem;font-weight:600;padding:0.12rem 0.45rem;border-radius:100px;margin-left:0.35rem;margin-bottom:0.5rem;vertical-align:top;border:1px solid var(--border)}
+.score-meta .conf-badge.high{background:var(--green-light);color:var(--green-dark);border-color:var(--green-light)}
+.score-meta .conf-badge.medium{background:var(--amber-light);color:var(--amber-dark);border-color:var(--amber-light)}
+.score-meta .conf-badge.low{background:var(--red-light);color:var(--red);border-color:var(--red-light)}
+.score-meta .conf-badge.unknown{background:var(--border-light);color:var(--text-dim)}
+.caution-explainer{margin-top:0.5rem;padding:0.75rem 0.9rem;background:var(--amber-light);border-radius:var(--radius);font-size:0.82rem;color:var(--amber-dark);border-left:3px solid var(--amber)}
+.caution-explainer strong{font-weight:700}
+.caution-explainer .tag{display:inline-block;font-family:var(--mono);font-size:0.75rem;background:rgba(255,255,255,0.6);padding:0.05rem 0.4rem;border-radius:4px;margin-left:0.35rem}
 .score-meta p{font-size:0.9rem;color:var(--text-light)}
 .score-meta .detail{font-size:0.8rem;color:var(--text-dim);margin-top:0.5rem}
 
@@ -166,7 +174,9 @@ h3{font-size:0.95rem;font-weight:600;margin-bottom:0.25rem;color:var(--text-ligh
 <div class="score-meta">
 <h1 id="domain-title"></h1>
 <span class="rec" id="rec-badge"></span>
+<span class="conf-badge" id="conf-badge" hidden></span>
 <p id="reasoning"></p>
+<div class="caution-explainer" id="caution-explainer" hidden></div>
 <div class="detail" id="meta-detail"></div>
 </div>
 </div>
@@ -305,6 +315,37 @@ function renderDashboard(data, domain){
   badge.textContent = c.recommendation;
   badge.className = 'rec ' + cls;
   document.getElementById('reasoning').textContent = c.reasoning;
+
+  // Confidence badge: surfaces how much evidence backs the score.
+  // 'unknown' means the row was scored before confidence fields shipped;
+  // re-check to populate it.
+  var conf = c.confidence || 'unknown';
+  var confBadge = document.getElementById('conf-badge');
+  if(confBadge){
+    confBadge.textContent = 'Confidence: ' + conf;
+    confBadge.className = 'conf-badge ' + conf;
+    confBadge.hidden = false;
+  }
+
+  // Caution explainer: show only for CAUTION verdicts with a known reason.
+  // Lets merchants see WHY they are not PROCEED, not just that they aren't.
+  var explainer = document.getElementById('caution-explainer');
+  if(explainer){
+    var reasonMessages = {
+      incomplete_evidence: 'Evidence is incomplete. We could not finish collecting all signals (usually because content fetch was blocked or WHOIS timed out). The score reflects what we could verify. Allowlisting our crawler or registering this domain lifts the floor.',
+      weak_signals: 'We collected evidence and it is genuinely thin. The checklist below shows the specific items to improve (privacy policy, DMARC, contact info, and similar).',
+      new_domain: 'This domain is under one year old. Domain age is an unfakeable trust signal so newer domains start lower by default. Registration with verified business identity raises the floor immediately.',
+      infrastructure: 'This domain looks like API or infrastructure service, not a consumer storefront. Our default scoring weighs content signals that matter less for infrastructure. Claim the dashboard and set your site category to reflect this.',
+    };
+    var reason = c.cautionReason;
+    if(c.recommendation === 'CAUTION' && reason && reasonMessages[reason]){
+      explainer.innerHTML = '<strong>Why CAUTION:</strong> ' + reasonMessages[reason] + ' <span class="tag">' + reason + '</span>';
+      explainer.hidden = false;
+    } else {
+      explainer.hidden = true;
+    }
+  }
+
   document.getElementById('meta-detail').textContent =
     'Category: ' + (c.siteCategory || 'consumer') +
     ' | Model: ' + (c.scoringModel || '?') +

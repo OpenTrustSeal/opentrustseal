@@ -117,6 +117,39 @@ section{padding:3.5rem 0}
 .how-num{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:0.9rem;margin-bottom:0.75rem}
 .how-card p{color:var(--text-light);font-size:0.875rem}
 
+/* Live registry stats */
+.stats-section{display:none}
+.stats-section.loaded{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:1.5rem}
+.stat-card{padding:1.5rem;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--white);text-align:left}
+.stat-card.primary{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;border-color:var(--blue-dark)}
+.stat-card.primary .stat-label,.stat-card.primary .stat-sub{color:rgba(255,255,255,0.85)}
+.stat-num{font-size:2rem;font-weight:800;line-height:1.1;letter-spacing:-0.02em;color:var(--navy);font-variant-numeric:tabular-nums}
+.stat-card.primary .stat-num{color:#fff}
+.stat-label{font-size:0.875rem;color:var(--text-light);margin-top:0.4rem;font-weight:500}
+.stat-sub{font-size:0.8125rem;color:var(--text-dim);margin-top:0.35rem}
+.stat-card.primary .stat-sub{color:rgba(255,255,255,0.75)}
+.stats-bar{margin-top:1.5rem;background:var(--warm-gray);border-radius:var(--radius-lg);padding:1.25rem;border:1px solid var(--border)}
+.stats-bar h3{font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:0.75rem}
+.stats-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;font-size:0.8125rem;color:var(--text-light)}
+.stats-legend-item{display:flex;align-items:center;gap:0.35rem}
+.stats-legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.stats-legend-dot.proceed{background:var(--green)}
+.stats-legend-dot.caution{background:#f39c12}
+.stats-legend-dot.deny{background:#c0392b}
+.stats-legend-dot.unknown{background:var(--text-dim)}
+.stacked-bar{display:flex;height:14px;border-radius:999px;overflow:hidden;background:var(--border-light)}
+.stacked-bar>span{display:block;height:100%}
+.stacked-bar>span.proceed{background:var(--green)}
+.stacked-bar>span.caution{background:#f39c12}
+.stacked-bar>span.deny{background:#c0392b}
+.stacked-bar>span.unknown{background:var(--text-dim)}
+.stats-caution-table{margin-top:1rem;display:grid;grid-template-columns:1fr auto;gap:0.35rem 1rem;font-size:0.8125rem;color:var(--text-light)}
+.stats-caution-table .reason{font-family:var(--mono);font-size:0.78rem}
+.stats-caution-table .count{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;color:var(--text)}
+.stats-meta{margin-top:0.75rem;font-size:0.75rem;color:var(--text-dim)}
+@media(prefers-reduced-motion:reduce){.stacked-bar>span{transition:none !important}}
+
 /* Two col */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem}
 .info-card{padding:1.5rem;border:1px solid var(--border);border-radius:var(--radius-lg)}
@@ -205,6 +238,42 @@ footer a{color:var(--text-light)}
 <div id="r-checklist"></div>
 </div>
 </div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<section id="stats" class="stats-section" aria-labelledby="stats-heading">
+<div class="container">
+<h2 id="stats-heading">Live registry coverage</h2>
+<p style="color:var(--text-light);max-width:640px">Counts below are pulled live from the API. They reflect the current state of the public registry: how many domains have been scored, how many are agent-safe today, and where the evidence gaps are.</p>
+<div class="stats-grid" aria-live="polite">
+<div class="stat-card primary">
+<div class="stat-num" id="stat-total" aria-label="Total domains scored">--</div>
+<div class="stat-label">Domains scored</div>
+<div class="stat-sub" id="stat-total-sub">across the Tranco top-1M</div>
+</div>
+<div class="stat-card">
+<div class="stat-num" id="stat-safe">--</div>
+<div class="stat-label">Agent-safe today</div>
+<div class="stat-sub" id="stat-safe-sub">PROCEED with non-low confidence</div>
+</div>
+<div class="stat-card">
+<div class="stat-num" id="stat-incomplete">--</div>
+<div class="stat-label">Incomplete evidence</div>
+<div class="stat-sub" id="stat-incomplete-sub">CAUTION flagged as fetch gap, not weak signals</div>
+</div>
+</div>
+<div class="stats-bar">
+<h3>Recommendation breakdown</h3>
+<div class="stacked-bar" id="stats-bar" role="img" aria-label="Distribution of recommendations"></div>
+<div class="stats-legend" id="stats-legend"></div>
+</div>
+<div class="stats-bar" id="caution-bar" hidden>
+<h3>Why CAUTION, broken down</h3>
+<div class="stats-caution-table" id="caution-table"></div>
+</div>
+<p class="stats-meta" id="stats-meta"></p>
 </div>
 </section>
 
@@ -478,6 +547,116 @@ function esc(s){var d=document.createElement('div');d.textContent=s;return d.inn
 btn.addEventListener('click', doCheck);
 input.addEventListener('keydown', function(e){ if(e.key === 'Enter') doCheck(); });
 
+})();
+</script>
+
+<script>
+// Live registry coverage widget. Fetches /v1/stats/dataset and degrades
+// gracefully: if the endpoint is not deployed or returns an error, the
+// section hides itself rather than showing broken placeholders.
+(function(){
+  var STATS_URL = 'https://api.opentrustseal.com/v1/stats/dataset';
+  var section = document.getElementById('stats');
+  if(!section) return;
+
+  function fmt(n){
+    if(typeof n !== 'number') return '--';
+    if(n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+    if(n >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K';
+    return String(n);
+  }
+
+  function setText(id, v){
+    var el = document.getElementById(id);
+    if(el) el.textContent = v;
+  }
+
+  function renderStackedBar(d){
+    var bar = document.getElementById('stats-bar');
+    var legend = document.getElementById('stats-legend');
+    if(!bar || !legend) return;
+    var recs = d.byRecommendation || {};
+    var proceed = recs.PROCEED || 0;
+    var caution = recs.CAUTION || 0;
+    var deny = recs.DENY || 0;
+    var total = proceed + caution + deny;
+    if(total === 0) return;
+    var pct = function(n){ return (n/total*100).toFixed(1); };
+    bar.innerHTML = '';
+    if(proceed){ var p=document.createElement('span'); p.className='proceed'; p.style.width=pct(proceed)+'%'; p.title='PROCEED: '+proceed; bar.appendChild(p); }
+    if(caution){ var c=document.createElement('span'); c.className='caution'; c.style.width=pct(caution)+'%'; c.title='CAUTION: '+caution; bar.appendChild(c); }
+    if(deny){ var x=document.createElement('span'); x.className='deny'; x.style.width=pct(deny)+'%'; x.title='DENY: '+deny; bar.appendChild(x); }
+    legend.innerHTML =
+      '<span class="stats-legend-item"><span class="stats-legend-dot proceed"></span>PROCEED '+fmt(proceed)+' ('+pct(proceed)+'%)</span>' +
+      '<span class="stats-legend-item"><span class="stats-legend-dot caution"></span>CAUTION '+fmt(caution)+' ('+pct(caution)+'%)</span>' +
+      '<span class="stats-legend-item"><span class="stats-legend-dot deny"></span>DENY '+fmt(deny)+' ('+pct(deny)+'%)</span>';
+  }
+
+  function renderCautionBreakdown(d){
+    var wrap = document.getElementById('caution-bar');
+    var tbl = document.getElementById('caution-table');
+    if(!wrap || !tbl) return;
+    var br = d.byCautionReason || {};
+    var rows = [];
+    var reasonOrder = ['incomplete_evidence','weak_signals','new_domain','infrastructure'];
+    for(var i=0;i<reasonOrder.length;i++){
+      var key = reasonOrder[i];
+      if(br[key] && br[key] > 0) rows.push([key, br[key]]);
+    }
+    if(rows.length === 0){ wrap.hidden = true; return; }
+    tbl.innerHTML = '';
+    for(var j=0;j<rows.length;j++){
+      var r = document.createElement('div');
+      r.className = 'reason';
+      r.textContent = rows[j][0];
+      var v = document.createElement('div');
+      v.className = 'count';
+      v.textContent = fmt(rows[j][1]);
+      tbl.appendChild(r);
+      tbl.appendChild(v);
+    }
+    wrap.hidden = false;
+  }
+
+  function renderStats(d){
+    setText('stat-total', fmt(d.totalDomains));
+    setText('stat-safe', fmt(d.agentSafe));
+    setText('stat-safe-sub', 'PROCEED with non-low confidence (' + (d.agentSafePercent||0) + '% of registry)');
+    setText('stat-incomplete', fmt(d.incompleteEvidence));
+    setText('stat-incomplete-sub', 'CAUTION flagged as fetch gap, not weak signals (' + (d.incompleteEvidencePercent||0) + '%)');
+    renderStackedBar(d);
+    renderCautionBreakdown(d);
+    setText('stats-meta', 'Updated live from /v1/stats/dataset. Re-fetched on page load.');
+    section.classList.add('loaded');
+  }
+
+  // Preview mode: add ?preview=stats to the URL to render the widget with
+  // representative mock data without hitting the API. Useful for reviewing
+  // the visual design before the /v1/stats/dataset endpoint is deployed.
+  if(window.location.search.indexOf('preview=stats') !== -1){
+    renderStats({
+      totalDomains: 101442,
+      agentSafe: 71820,
+      agentSafePercent: 70.8,
+      incompleteEvidence: 11250,
+      incompleteEvidencePercent: 11.1,
+      byConfidence: { high: 68400, medium: 24800, low: 8242 },
+      byRecommendation: { PROCEED: 71820, CAUTION: 26880, DENY: 2742 },
+      byCautionReason: {
+        incomplete_evidence: 11250,
+        weak_signals: 10200,
+        new_domain: 3890,
+        infrastructure: 1540,
+      },
+      byBrandTier: { well_known: 12800, scored: 88642 },
+    });
+    return;
+  }
+
+  fetch(STATS_URL, { cache: 'no-store' })
+    .then(function(r){ if(!r.ok) throw new Error('stats endpoint returned '+r.status); return r.json(); })
+    .then(renderStats)
+    .catch(function(){ /* silent: endpoint not yet deployed, leave section hidden */ });
 })();
 </script>
 
