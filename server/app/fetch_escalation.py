@@ -133,7 +133,6 @@ PROBE_PATH = os.environ.get("OTS_PROBE_PATH", "/.well-known/security.txt")
 SCRAPER_PROVIDER = _SCRAPER_ENV.get("SCRAPER_PROVIDER", "").lower().strip()
 SCRAPER_API_KEY = _SCRAPER_ENV.get("SCRAPER_API_KEY", "").strip()
 SCRAPER_ZONE = _SCRAPER_ENV.get("SCRAPER_ZONE", "").strip()
-SCRAPER_CUSTOMER_ID = _SCRAPER_ENV.get("SCRAPER_CUSTOMER_ID", "").strip()
 SCRAPER_ENABLED = (
     _SCRAPER_ENV.get("SCRAPER_ENABLED", "false").lower() in ("1", "true", "yes", "on")
     and bool(SCRAPER_API_KEY)
@@ -657,43 +656,61 @@ _REALISTIC_CHROME_UA = (
 
 
 async def _fetch_via_brightdata(url: str, timeout_s: float) -> Optional[CrawlerResponse]:
-    """Bright Data Web Unlocker adapter.
+    """Bright Data Web Unlocker REST API adapter.
 
-    Bright Data exposes Web Unlocker as an HTTP proxy. The proxy handles
-    captcha solving, IP rotation, and fingerprint matching internally; we
-    just point httpx at it. Credentials go in the proxy URL per Bright
-    Data's docs.
+    Bright Data's modern Web Unlocker is a POST api.brightdata.com/request
+    endpoint that takes a target URL and a zone name, handles captcha
+    solving + IP rotation + fingerprint matching internally, and returns
+    the target page's raw HTML in the response body. Auth is a UUID-format
+    API token in the Authorization header.
+
+    The target's actual HTTP status code comes back in the `x-brd-status-code`
+    response header (NOT the api.brightdata.com wrapper's own status, which
+    is 200 whenever the API call itself succeeded regardless of what the
+    target returned). We unwrap it so downstream treats the response the
+    same as any other tier's fetch.
+
+    Target response headers are not preserved by Bright Data's API, so the
+    headers dict we return contains synthesized source + status markers
+    only. Consumers that need target headers (e.g. security header count)
+    treat their absence as "unknown" rather than "zero."
     """
-    if not SCRAPER_CUSTOMER_ID or not SCRAPER_ZONE:
+    if not SCRAPER_ZONE or not SCRAPER_API_KEY:
         return None
-    proxy_url = (
-        f"http://brd-customer-{SCRAPER_CUSTOMER_ID}-zone-{SCRAPER_ZONE}:"
-        f"{SCRAPER_API_KEY}@brd.superproxy.io:22225"
-    )
     try:
-        async with httpx.AsyncClient(
-            proxy=proxy_url,
-            timeout=timeout_s,
-            verify=False,  # Bright Data intercepts TLS with their own cert
-            follow_redirects=True,
-        ) as client:
-            r = await client.get(
-                url,
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            r = await client.post(
+                "https://api.brightdata.com/request",
+                json={
+                    "zone": SCRAPER_ZONE,
+                    "url": url,
+                    "format": "raw",
+                },
                 headers={
-                    "User-Agent": _REALISTIC_CHROME_UA,
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.9",
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {SCRAPER_API_KEY}",
                 },
             )
-            return CrawlerResponse({
-                "status": r.status_code,
-                "body": r.text[:500_000],
-                "headers": dict(r.headers),
-                "final_url": str(r.url),
-                "redirect_count": len(r.history),
-                "elapsed_ms": int(r.elapsed.total_seconds() * 1000) if r.elapsed else 0,
-                "fetched_via": "scraper-brightdata",
-            })
+        # api.brightdata.com returns 200 on successful delivery of the
+        # target response. If the wrapper itself errored (bad token, zone
+        # disabled, account suspended), status will be 4xx/5xx.
+        if r.status_code != 200:
+            return None
+        # Target's HTTP status lives in the x-brd-status-code header.
+        target_status = int(r.headers.get("x-brd-status-code", r.status_code))
+        return CrawlerResponse({
+            "status": target_status,
+            "body": r.text[:500_000],
+            "headers": {
+                "x-ots-source": "scraper-brightdata",
+                "x-brd-status-code": str(target_status),
+                "content-type": r.headers.get("content-type", "text/html"),
+            },
+            "final_url": url,  # Bright Data follows redirects server-side; we don't learn the final URL
+            "redirect_count": 0,
+            "elapsed_ms": int(r.elapsed.total_seconds() * 1000) if r.elapsed else 0,
+            "fetched_via": "scraper-brightdata",
+        })
     except Exception:
         return None
 
