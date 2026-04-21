@@ -85,15 +85,15 @@ class OpenTrustSealTool(BaseTool):
             top = "; ".join(c.item for c in failing[:3])
             lines.append(f"Top issues: {top}")
 
-        # Clear decision guidance for the agent
-        if result.has_critical_flags:
-            lines.append("ACTION: DO NOT proceed. Critical safety flags detected.")
-        elif result.is_safe:
-            lines.append("ACTION: Safe to proceed with this merchant.")
-        elif result.is_risky:
-            lines.append("ACTION: Proceed with caution. Consider confirming with the user first.")
-        else:
-            lines.append("ACTION: Refuse this transaction.")
+        # Evidence quality
+        lines.append(f"Evidence confidence: {result.confidence}")
+        if result.caution_reason:
+            lines.append(f"CAUTION reason: {result.caution_reason}")
+
+        # Decision guidance comes from the SDK's confidence-aware helper so
+        # every integration (this tool, LangChain, custom agents) shares one
+        # canonical decision path.
+        lines.append(f"ACTION: {result.action_message}")
 
         # Include the signature snippet for auditability
         sig = result.signature[:32] if result.signature else ""

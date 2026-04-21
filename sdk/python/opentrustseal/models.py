@@ -111,6 +111,53 @@ class CheckResult:
         critical = {"MALWARE_DETECTED", "PHISHING_DETECTED", "RECENTLY_COMPROMISED"}
         return bool(critical & set(self.flags))
 
+    @property
+    def recommended_action(self) -> str:
+        """Confidence-aware action recommendation for an agent.
+
+        Combines recommendation, confidence, and caution_reason into a single
+        decision hint. Value is one of:
+
+            "refuse_critical"     -- malware/phishing detected, never proceed
+            "refuse"              -- DENY tier
+            "proceed"             -- PROCEED tier, non-low confidence
+            "confirm_low_value"   -- CAUTION with low confidence: acceptable for
+                                     small-dollar transactions, confirm larger
+            "confirm_new_domain"  -- CAUTION because the domain is under 1 year old
+            "confirm_caution"     -- CAUTION for all other reasons
+            "review"              -- unexpected state, fall back to human review
+
+        Agents should branch on this value rather than re-deriving the logic.
+        """
+        if self.has_critical_flags:
+            return "refuse_critical"
+        if self.is_blocked:
+            return "refuse"
+        if self.is_safe:
+            return "proceed"
+        if self.is_risky:
+            if self.confidence == "low":
+                return "confirm_low_value"
+            if self.caution_reason == "new_domain":
+                return "confirm_new_domain"
+            return "confirm_caution"
+        return "review"
+
+    @property
+    def action_message(self) -> str:
+        """Human-readable companion to recommended_action. Suitable for agent
+        logs and tool-call output. Safe to show end users."""
+        messages = {
+            "refuse_critical": "DO NOT proceed. Critical safety flags detected.",
+            "refuse": "Refuse this transaction.",
+            "proceed": "Safe to proceed with this merchant.",
+            "confirm_low_value": "Evidence incomplete. Not necessarily bad. Low-dollar OK. Confirm larger amounts.",
+            "confirm_new_domain": "New domain. Confirm with user before transacting.",
+            "confirm_caution": "Proceed with caution. Confirm with user first.",
+            "review": "Unexpected state. Fall back to human review.",
+        }
+        return messages.get(self.recommended_action, messages["review"])
+
 
 def _parse_response(data: dict) -> CheckResult:
     """Parse API response JSON into a CheckResult."""

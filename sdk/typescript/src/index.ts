@@ -80,7 +80,29 @@ export interface CheckResult {
   isBlocked: boolean;
   /** Convenience: are there critical security flags? */
   hasCriticalFlags: boolean;
+
+  /**
+   * Confidence-aware action recommendation. Combines recommendation,
+   * confidence, and cautionReason into a single decision hint agents can
+   * branch on without re-deriving the logic.
+   */
+  recommendedAction: AgentAction;
+
+  /**
+   * Human-readable companion to recommendedAction. Suitable for agent logs
+   * and tool-call output. Safe to show end users.
+   */
+  actionMessage: string;
 }
+
+export type AgentAction =
+  | 'refuse_critical'     // malware/phishing detected, never proceed
+  | 'refuse'              // DENY tier
+  | 'proceed'             // PROCEED tier, non-low confidence
+  | 'confirm_low_value'   // CAUTION with low confidence: small-dollar OK, confirm larger
+  | 'confirm_new_domain'  // CAUTION because the domain is under 1 year old
+  | 'confirm_caution'     // CAUTION for other reasons
+  | 'review';             // unexpected state, fall back to human review
 
 export interface OTSClientOptions {
   apiKey?: string;
@@ -88,16 +110,43 @@ export interface OTSClientOptions {
   timeout?: number;
 }
 
+const ACTION_MESSAGES: Record<AgentAction, string> = {
+  refuse_critical: 'DO NOT proceed. Critical safety flags detected.',
+  refuse: 'Refuse this transaction.',
+  proceed: 'Safe to proceed with this merchant.',
+  confirm_low_value:
+    'Evidence incomplete. Not necessarily bad. Low-dollar OK. Confirm larger amounts.',
+  confirm_new_domain: 'New domain. Confirm with user before transacting.',
+  confirm_caution: 'Proceed with caution. Confirm with user first.',
+  review: 'Unexpected state. Fall back to human review.',
+};
+
+function computeRecommendedAction(data: any, hasCriticalFlags: boolean): AgentAction {
+  if (hasCriticalFlags) return 'refuse_critical';
+  if (data.recommendation === 'DENY') return 'refuse';
+  if (data.recommendation === 'PROCEED') return 'proceed';
+  if (data.recommendation === 'CAUTION') {
+    if (data.confidence === 'low') return 'confirm_low_value';
+    if (data.cautionReason === 'new_domain') return 'confirm_new_domain';
+    return 'confirm_caution';
+  }
+  return 'review';
+}
+
 function enrichResult(data: any): CheckResult {
   const critical = new Set(['MALWARE_DETECTED', 'PHISHING_DETECTED', 'RECENTLY_COMPROMISED']);
   const flags: string[] = data.flags || [];
+  const hasCriticalFlags = flags.some(f => critical.has(f));
+  const recommendedAction = computeRecommendedAction(data, hasCriticalFlags);
 
   return {
     ...data,
     isSafe: data.recommendation === 'PROCEED',
     isRisky: data.recommendation === 'CAUTION',
     isBlocked: data.recommendation === 'DENY',
-    hasCriticalFlags: flags.some(f => critical.has(f)),
+    hasCriticalFlags,
+    recommendedAction,
+    actionMessage: ACTION_MESSAGES[recommendedAction],
   };
 }
 
