@@ -32,6 +32,16 @@ if not SHARED_SECRET:
 POOL_SIZE = int(os.environ.get("CRAWLER_POOL_SIZE", "2"))
 DEFAULT_TIMEOUT_MS = int(os.environ.get("CRAWLER_DEFAULT_TIMEOUT_MS", "20000"))
 
+# Resource blocking. Default on. Trust scoring reads DOM text (privacy/
+# terms/contact links in footers, SSL cert org, etc) and does not need
+# images, video, or web fonts. Blocking them drops bandwidth 5-10x per
+# fetch and speeds up each fetch 3-5x because the page reaches DOMContent-
+# Loaded without waiting for hero carousels and font files. Kept env-gated
+# in case a future scorer looks at visual properties (e.g. favicon hash).
+# Set CRAWLER_BLOCK_RESOURCES=false to disable.
+BLOCK_RESOURCES = os.environ.get("CRAWLER_BLOCK_RESOURCES", "true").lower() in ("1", "true", "yes")
+_BLOCKED_RESOURCE_TYPES = {"image", "media", "font"}
+
 # Browser channel selection. Empty (default) uses Playwright's bundled
 # chromium-headless-shell -- fine for sites blocked by AS reputation but
 # still fingerprintable as headless by the heavier bot managers. Set to
@@ -79,6 +89,21 @@ _EXTRA_HEADERS = {
 _STEALTH = Stealth(
     navigator_user_agent_override=_UA,
 )
+
+
+async def _abort_heavy_resources(route):
+    """Intercept handler: drop images, media, and fonts. Let everything else
+    (document, script, stylesheet, xhr, fetch, etc) through so SPAs still
+    render and the DOM the scorer reads is complete."""
+    try:
+        if route.request.resource_type in _BLOCKED_RESOURCE_TYPES:
+            await route.abort()
+        else:
+            await route.continue_()
+    except Exception:
+        # Route may have already been handled or page may be navigating away.
+        # Swallow; Playwright logs internally if it matters.
+        pass
 
 
 class ProxyConfig(BaseModel):
@@ -165,6 +190,8 @@ class ContextPool:
             kwargs["proxy"] = proxy
         ctx = await self.browser.new_context(**kwargs)
         await _STEALTH.apply_stealth_async(ctx)
+        if BLOCK_RESOURCES:
+            await ctx.route("**/*", _abort_heavy_resources)
         return ctx
 
     async def new_ephemeral(self, proxy: dict) -> BrowserContext:
