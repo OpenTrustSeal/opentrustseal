@@ -1,5 +1,48 @@
 # OpenTrustSeal Project State
 
+## Session Summary (2026-04-17 through 2026-04-19)
+
+Three-day push to ship the 100K + 1M seed dataset and harden agent-facing surfaces. Everything below landed in this window.
+
+**Crawler cluster -- 18 seed droplets, per-host DB, no contention.** The prior burst droplet (165.227.26.56, 8GB/4vCPU, 18 processes on one box) was retired because per-process SQLite writes still contended on the same disk. New layout is one droplet per "seed", each with its own SQLite DB, so corruption is architecturally impossible.
+
+- **ots-seed-1 through ots-seed-8 on DigitalOcean** ($12/2GB droplets, Ubuntu 24.04). DO capped the account at 10 droplets, which forced the Vultr pivot.
+- **ots-seed-9 through ots-seed-18 on Vultr** (same specs, spread across Sydney and other global regions for fresh WHOIS rate-limit windows + geographic proximity to country-specific WHOIS servers).
+- Seeds 1-6 run **Tranco top-100K** (~16K domains each).
+- Seeds 7-18 run **Tranco 100K-1M** (12 droplets × ~75K domains each).
+- All boxes checkpoint-resumable, all use the same SSH key (allen@opentrusttoken.com).
+- SSH IPs (captured 2026-04-18): seed-1 138.68.30.188, seed-2 146.190.142.163, seed-3 142.93.248.84, seed-4 138.197.129.121, seed-5 142.93.34.243, seed-6 68.183.13.238, seed-7 137.184.1.1, seed-8 64.23.228.248, seed-9 149.28.169.34 (Sydney), seed-10 66.42.118.203, seed-11 144.202.17.121, seed-12 45.76.174.191, seed-13 216.128.176.173, seed-14 45.77.88.41, seed-15 104.238.158.94, seed-16 207.148.102.73, seed-17 144.202.93.207, seed-18 45.77.148.196.
+- Prior 123K merged dataset preserved at `/tmp/seed-dbs/merged.db` on the old burst droplet BEFORE retirement; if it was destroyed with the burst droplet, the top-100K is being recrawled clean from seeds 1-6.
+
+**Scoring v1.4 consensus tier:** `spec/SCORING-V1.4.md` shipped. Top-100 Tranco domains with 10+ years age get an elevated identity ceiling (75 vs 55), spreading top-site scores into the 80-90 range. Amazon moves 76 to 82. Awaiting batch rescore after 100K seed merge.
+
+**Dataset export pipeline:** `server/export_dataset.py` produces CSV + JSON + SHA-256 manifest. `server/merge_db.py` merges burst DB into production with --dry-run mode. Dataset README at [dataset/README.md](opentrusttoken/dataset/README.md) now includes `confidence` (high/medium/low) and `cautionReason` (incomplete_evidence/weak_signals/new_domain/infrastructure) fields, so agents can distinguish "CAUTION because evidence is incomplete" from "CAUTION because signals are actually weak."
+
+**Python SDK confidence surface:** `sdk/python/opentrustseal/models.py` exposes `confidence` and `caution_reason`. Both CrewAI integrations ([sdk/python/opentrustseal/integrations/crewai.py](opentrusttoken/sdk/python/opentrustseal/integrations/crewai.py) and the standalone PR-ready [sdk/crewai-pr/opentrustseal_tool.py](opentrusttoken/sdk/crewai-pr/opentrustseal_tool.py)) surface these in tool output with decision guidance keyed to confidence level. Low-confidence CAUTION tells the agent "evidence incomplete, not necessarily bad, low-dollar OK." High-confidence CAUTION with new_domain tells the agent to confirm with user. This is the difference between a tool that blocks false positives and one that just reports a number.
+
+**Merchant outreach email templates:** [docs/MERCHANT-OUTREACH-EMAIL.md](opentrusttoken/docs/MERCHANT-OUTREACH-EMAIL.md). Four variants (A: weak_signals, B: incomplete_evidence, C: new_domain, D: infrastructure) plus a 7-day follow-up. Placeholder-templated, sends from alu@opentrustseal.com. Routing logic at bottom maps `cautionReason` to template.
+
+**Codex critique fix bundle (shipped 2026-04-19, all 5 verified on disk):**
+
+1. **Residential fleet loop bug** -- [server/app/fetch_escalation.py:381](opentrusttoken/server/app/fetch_escalation.py) now `continue`s after exception inside the for-loop instead of `return None` on first failure. Tier 4 actually tries every Mac endpoint now.
+2. **confidence + cautionReason cryptographically bound** -- both fields added to the signable payload in [server/app/pipeline.py:389-398](opentrusttoken/server/app/pipeline.py) so the Ed25519 signature covers them. Agents can trust the explanation field the same way they trust the score.
+3. **Confidence distinguishes gaps from weakness** -- [server/app/scoring.py:320-381](opentrusttoken/server/app/scoring.py) rewritten to count evidence vs gaps. Reputation/SSL=0 is evidence (blocklist hit, no SSL). Content=0 with `content_scorable=False` is a gap. Domain age score=0 with `domain_age_days<0` is a gap (WHOIS failed) vs domain age score=0 with `domain_age_days>=0` which is evidence (legitimately new). Identity=0 treated as gap.
+4. **`_unscorable` persisted to raw_signals** -- [server/app/pipeline.py:275](opentrusttoken/server/app/pipeline.py) writes `"_unscorable": content_unscorable` into the content raw payload so a future rescore can preserve the incomplete_evidence vs weak_signals distinction. [server/rescore.py:197](opentrusttoken/server/rescore.py) reads it on the way back.
+5. **Completion-list selector tightened** -- [server/scripts/generate_completion_list.py:76-96](opentrusttoken/server/scripts/generate_completion_list.py) now only requeues true evidence gaps: `content=0 AND CONTENT_UNSCORABLE flag`, `identity=0`, `age=0 with no registeredDate`, or `<3 signals populated`. Legitimately new or weak domains stay as-is.
+
+**Upptime status page:** GitHub repo `bonedoc911/ott-status` monitors API health, landing page, dashboard every 5 minutes.
+
+**Corporate entity:** OpenTrustSeal, Inc. California C-Corp filed 2026-04-17. Private repo at `bonedoc911/opentrustseal`.
+
+**Dropped:** OpenClaw / Claude Code CLI on Mac Air as a backend scraper. Anthropic TOS gray zone, and the protocol probe (tier 1.5) + Wayback (tier 5) tiers made it redundant. Future stubborn-site work should use a commercial scraper API (ScraperAPI, ZenRows, Bright Data) not Claude Code.
+
+**Next on resume (2026-04-19 handoff):**
+1. Check seed cluster progress -- seeds 1-4 were near done at rollover
+2. After seeds 1-6 finish: merge, run v1.4 rescore, export dataset, destroy burst droplet
+3. Publish dataset to Hugging Face or GitHub Releases (CC-BY-4.0)
+4. Submit CrewAI tool PR with dataset link as proof of coverage
+5. Begin merchant outreach using templates above, starting with high-impact CAUTION domains
+
 ## What This Is
 
 An independent trust attestation layer for AI agent commerce. Agents call our API before making a payment to check if a merchant site is trustworthy. We return a signed evidence bundle with a trust score, brand tier classification, crawlability status, and an actionable checklist.
@@ -13,7 +56,7 @@ The real asset is the longitudinal database of trust profiles for every domain w
 
 **Rebrand status (2026-04-17/18):** Code fully renamed from opentrusttoken/OTT to opentrustseal/OTS in the git repo. VPS infrastructure still runs under the old paths/names (deferred to post-seed cutover). Both domains (opentrusttoken.com and opentrustseal.com) serve the same API simultaneously.
 
-**100K seed crawl (in progress):** 24 processes x 5 workers on burst droplet 165.227.26.56 (8GB/4vCPU). Rate ~42 domains/min. ETA ~1.5 days (April 19-20). Checkpoint-resumable. After completion: merge burst DB into production via merge_db.py, rescore with v1.4, export dataset, destroy droplet.
+**100K + 1M seed crawl (in progress):** 18-droplet cluster replaces the prior single burst droplet. Seeds 1-6 (DigitalOcean) cover Tranco top-100K (~16K each). Seeds 7-18 (DO 7-8, Vultr 9-18) cover Tranco 100K-1M (~75K each). Each droplet has its own SQLite DB -- zero contention, zero corruption risk. Checkpoint-resumable. After completion: per-droplet DBs pulled to a merge host, merged via merge_db.py, rescored with v1.4, dataset exported, droplets destroyed.
 
 ## What's Built and Deployed
 
