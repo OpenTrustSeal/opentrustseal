@@ -73,6 +73,14 @@ footer{padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;text-al
 <h1>Scoring Methodology</h1>
 <p style="color:var(--text-light)">How OpenTrustSeal computes trust scores from publicly observable evidence.</p>
 
+<h2>Why independent, not a payment rail</h2>
+
+<p>OpenTrustSeal is not a payment processor. We never move money. We never route a transaction. We are an independent attestation layer that sits beside the payment rail -- agents, payment protocols, and merchants cite us before a transaction happens. This separation is intentional.</p>
+
+<p>Payment processors have a structural conflict of interest when scoring the merchants they process for. A rail that marked a paying customer as DENY would cannibalize its own revenue. A neutral third-party trust attestation -- scored from public evidence, signed cryptographically, cited by name in the payment flow -- is the primitive that compositional agent commerce needs. That is the role OpenTrustSeal fills.</p>
+
+<p>The signed evidence bundle we return is designed to be cited by payment protocols (AP2, MPP, Coinbase x402) without putting us on their critical path. Any party that trusts our Ed25519 public key can verify the attestation offline, after the fact, without contacting our API at all. That is not a feature a payment rail can replicate without first divesting their merchant relationships.</p>
+
 <h2>Principles</h2>
 
 <p><strong>Evidence first, score second.</strong> Every trust score is a weighted summary of observable signals. The API returns the raw signal data alongside the score so agents can inspect, override, or weight signals differently for their own risk models. The score is a convenience; the evidence bundle is the product.</p>
@@ -109,6 +117,25 @@ footer{padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;text-al
 <tr><td>0-39</td><td><span class="badge deny">DENY</span></td><td>Critical trust signals are absent or negative. Agent should refuse the transaction.</td></tr>
 </tbody>
 </table>
+
+<h2>Confidence and cautionReason</h2>
+
+<p>A trust score alone does not tell an agent <em>why</em> a domain is not a clear PROCEED. Two new fields on every response make the verdict operational:</p>
+
+<p><strong>confidence</strong> (high / medium / low). Reflects how complete the evidence is, not how strong the signals are. A domain with six populated signals scored low is <code>confidence: high, cautionReason: weak_signals</code> -- the site genuinely looks thin. A domain with blocked content fetch and WHOIS timeout is <code>confidence: low, cautionReason: incomplete_evidence</code> -- we could not collect enough to judge. These are different risks to an agent and they deserve different policy.</p>
+
+<p><strong>cautionReason</strong> (set only when recommendation is CAUTION). One of:</p>
+
+<ul>
+<li><code>incomplete_evidence</code>: content blocked, WHOIS unavailable, or fewer than three signals fully collected. The score is limited by missing data, not by bad data.</li>
+<li><code>weak_signals</code>: we collected evidence across the categories and it is genuinely thin. The site needs improvement (privacy policy, DMARC, valid certificate, etc).</li>
+<li><code>new_domain</code>: the domain is under one year old. Time is the missing signal; registration with verified business identity shortens the path to PROCEED.</li>
+<li><code>infrastructure</code>: a CDN, API endpoint, or tracking domain scored against merchant criteria. The consumer-merchant model does not fit; the site owner can change <code>siteCategory</code> to <code>api_service</code> for a scoring model appropriate to their use case.</li>
+</ul>
+
+<p>Agent integrations should branch on these fields explicitly. A CAUTION with <code>confidence: low</code> is reasonable to proceed on for small-dollar transactions. A CAUTION with <code>new_domain</code> is worth confirming with the user even at low value. Neither behaves like a blanket DENY.</p>
+
+<p>Both fields are included in the Ed25519-signed payload. An agent cannot claim they did not know the reason -- the attestation carries it, cryptographically bound to the score.</p>
 
 <h2>Brand anchor</h2>
 
@@ -164,6 +191,14 @@ footer{padding:2rem 0;border-top:1px solid var(--border);margin-top:3rem;text-al
 <p>Every attestation is logged in a per-domain hash chain (tamper-evident transparency log). Auditors can verify the chain at <code>/v1/log/{domain}/verify</code>. The scoring model version, raw signal data, and computed score are all available via the API for independent verification.</p>
 
 <p>The Ed25519 signing key's public component is published in the <a href="https://opentrustseal.com/.well-known/did.json">DID document</a>. Key rotation follows a documented 12-month schedule with a 2-week overlap period.</p>
+
+<h2>Open methodology and open dataset</h2>
+
+<p>The scoring code, signal collectors, and test suite are public at <a href="https://github.com/OpenTrustSeal/opentrustseal">github.com/OpenTrustSeal/opentrustseal</a>. The scoring specification for the current model version lives at <a href="https://github.com/OpenTrustSeal/opentrustseal/blob/main/spec/SCORING-V1.4.md"><code>spec/SCORING-V1.4.md</code></a> in the repository.</p>
+
+<p>The full trust dataset for the Tranco top-1M is published under <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>. Anyone can download it, cite it, build on top of it. No paywall, no registration. The dataset is the reference; the API is the distribution layer.</p>
+
+<p>Security vulnerability reports go to <a href="mailto:alu@opentrustseal.com">alu@opentrustseal.com</a>. Our disclosure policy is documented in <a href="https://github.com/OpenTrustSeal/opentrustseal/blob/main/SECURITY.md"><code>SECURITY.md</code></a>. Signing key compromises, signature-verification bypasses, and transparency-log hash-chain tampering are the highest-severity issues we triage.</p>
 
 </div>
 </main>
