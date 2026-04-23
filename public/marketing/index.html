@@ -360,6 +360,28 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 </div>
 </section>
 
+<!-- Confidence and cautionReason -->
+<section id="confidence">
+<div class="container">
+<p class="label">Agent-operational verdicts</p>
+<h2>Confidence and cautionReason make CAUTION actionable</h2>
+<p style="color:var(--text-light);margin-bottom:1rem">A trust score alone does not tell an agent what to do about a CAUTION verdict. Two fields on every response make the policy decision clear and cryptographically binding.</p>
+
+<div class="card-grid" style="margin-top:1rem">
+<div class="card">
+<h3><code>confidence</code></h3>
+<p style="font-size:0.9rem;color:var(--text-light)">Reflects how complete the evidence is, not how strong the signals are. <code>high</code> means 5 or 6 signal categories populated with real data. <code>medium</code> means 4. <code>low</code> means 3 or fewer. A site with content-fetch blocked by Cloudflare and WHOIS timed out is <code>low</code> -- we could not collect enough to judge. A site with every signal populated but scoring thin on content is <code>high</code> with weak signals. Those are different risks to an agent and they deserve different policy.</p>
+</div>
+<div class="card">
+<h3><code>cautionReason</code></h3>
+<p style="font-size:0.9rem;color:var(--text-light)">When the verdict is CAUTION, this field is one of <code>incomplete_evidence</code> (fetch gaps, not judgement), <code>weak_signals</code> (collected evidence is genuinely thin), <code>new_domain</code> (under 1 year old -- time is the missing signal), or <code>infrastructure</code> (CDN/API scored against merchant criteria). Each maps to different agent policy. A low-confidence CAUTION on a merchant with blocked crawl is fine for small-dollar transactions; a high-confidence new-domain CAUTION should confirm with the user even at low value.</p>
+</div>
+</div>
+
+<p style="margin-top:1.25rem;font-size:0.9rem;color:var(--text-light)"><strong>Both fields are cryptographically signed together with the score.</strong> An agent cannot claim they did not know the reason -- the Ed25519 signature covers the explanation the same way it covers the number. Agent SDKs (Python, TypeScript, CrewAI tool) expose a <code>recommendedAction</code> helper that branches on these fields so every integration applies the same decision logic.</p>
+</div>
+</section>
+
 <!-- Registration -->
 <section id="registration">
 <div class="container">
@@ -630,14 +652,19 @@ scored_results <span class="c">-- domain, score, recommendation, model_version, 
 <tr><td><strong>Site owner dashboard</strong></td><td style="color:var(--green)">Live</td><td>Score hero, signal breakdown bars, jurisdiction profile, grouped checklist, registration status with per-field verification, score history chart with PROCEED threshold line</td></tr>
 <tr><td><strong>Python + TypeScript SDKs</strong></td><td style="color:var(--green)">Built</td><td>sync/async clients, LangChain and CrewAI tool wrappers. Not yet published to PyPI / npm.</td></tr>
 <tr><td><strong>Fetch tier 1 (direct httpx)</strong></td><td style="color:var(--green)">Live</td><td>Realistic browser headers, Brotli decompression, Chrome and Safari user-agent rotation, www-fallback for sites with dead apex</td></tr>
-<tr><td><strong>Fetch tier 2 (headless Chromium)</strong></td><td style="color:var(--green)">Live</td><td>Dedicated crawler droplet (ott-crawler-1), FastAPI fetch service on private VPC, playwright-stealth, pool of warm contexts, shared-secret auth, circuit breaker</td></tr>
-<tr><td><strong>Fetch tier 3 (residential proxy)</strong></td><td style="color:var(--green)">Live</td><td>Decodo rotating residential IPs (gate.decodo.com:7000), Playwright through proxy, ephemeral contexts per request, separate circuit breaker, counters at /stats.fetch</td></tr>
-<tr><td><strong>Fetch tier 4 (real Chrome, residential)</strong></td><td style="color:var(--green)">Live</td><td>Physical Mac at a residential ISP via Tailscale. Intended to crack Cloudflare Enterprise Bot Management tier where datacenter + stealth alone cannot reach.</td></tr>
-<tr><td><strong>Registry (100K)</strong></td><td style="color:var(--green)">Live</td><td>100,000+ domains from Tranco top-100K. Six-tier fetch ladder ensures comprehensive content analysis.</td></tr>
-<tr><td><strong>Fetch tier 5 (Wayback Machine)</strong></td><td style="color:var(--green)">Live</td><td>Internet Archive snapshot retrieval for sites that block live fetching. Per-domain hash-chain transparency log for tamper-evident attestation auditing.</td></tr>
-<tr><td><strong>Scoring v1.4 (consensus tier)</strong></td><td style="color:var(--green)">Live</td><td>Top-100 Tranco consensus identity tier raises ceiling from 55 to 75. Amazon/Google/Wikipedia score 80-90 instead of 75.</td></tr>
+<tr><td><strong>Fetch tier 1.5 (protocol probe)</strong></td><td style="color:var(--green)">Live</td><td>Direct httpx to /.well-known/security.txt. Many captcha-walled sites serve a clean 404 error shell containing the footer template, which has the legal links we score on. Often rescues content where tier 1 got a captcha.</td></tr>
+<tr><td><strong>Fetch tier 2 (headless Chromium)</strong></td><td style="color:var(--green)">Live</td><td>Dedicated crawler droplet (ots-crawler-1), FastAPI fetch service on private VPC, playwright-stealth, pool of warm contexts, shared-secret auth, circuit breaker</td></tr>
+<tr><td><strong>Fetch tier 3 (residential proxy)</strong></td><td style="color:var(--green)">Live</td><td>Decodo rotating residential IPs, Playwright through proxy, ephemeral contexts per request, separate circuit breaker, counters at /stats.fetch</td></tr>
+<tr><td><strong>Fetch tier 4 (residential fleet)</strong></td><td style="color:var(--green)">Live</td><td>Fleet of residential-ISP endpoints (Mac Air + Windows gaming PC, Chrome for Testing 138 via executable_path) over Tailscale. Round-robin with per-endpoint circuit breakers. Defeats Cloudflare Enterprise Bot Management on the CF-blocked merchant set (chewy, crateandbarrel, macys, petco).</td></tr>
+<tr><td><strong>Fetch tier 5 (Wayback Machine)</strong></td><td style="color:var(--green)">Live</td><td>Internet Archive CDX lookup + id_ mode snapshot retrieval for sites that block live fetching. Tagged wayback-&lt;timestamp&gt; in raw signals for auditability.</td></tr>
+<tr><td><strong>Fetch tier 6 (commercial scraper)</strong></td><td style="color:var(--green)">Live</td><td>Bright Data Web Unlocker REST API as last-resort rescue. Gated behind a 3-strike accumulator so we only pay for domains that defeated every prior tier on three separate re-crawl cycles. 289-domain preload seeds the gate so stubborn brands fire immediately.</td></tr>
+<tr><td><strong>Scoring v1.4 (consensus tier)</strong></td><td style="color:var(--green)">Live</td><td>Top-100 Tranco consensus identity tier raises ceiling from 55 to 75. Amazon/Google/Wikipedia score 80-90 instead of 75. All 1,231 production rows rescored to v1.4; confidence + cautionReason populated.</td></tr>
 <tr><td><strong>Transparency log</strong></td><td style="color:var(--green)">Live</td><td>Per-domain hash chain, public /v1/log/{domain} endpoint, /v1/log/{domain}/verify chain integrity check.</td></tr>
-<tr><td><strong>Calibration dataset</strong></td><td style="color:var(--text-dim)">Next</td><td>Every signed bundle has a check_id. Outcome feedback from registered merchants and API consumers retroactively backtests scores against real fraud outcomes. Over 6-12 months this becomes the real moat.</td></tr>
+<tr><td><strong>Continuous DB replication</strong></td><td style="color:var(--green)">Live</td><td>Litestream streaming SQLite WAL pages to Backblaze B2 (us-west-004) with 72h granular restore. Independent failure domain from DigitalOcean. Under $0.05/mo at current DB size.</td></tr>
+<tr><td><strong>Cloudflare edge + DDoS</strong></td><td style="color:var(--green)">Live</td><td>Proxied apex + www + api behind Cloudflare free tier. SSL Full-strict to origin. /v1/check bypassed from cache for freshness. Bot filtering off so default Python/Node HTTP clients aren't blocked.</td></tr>
+<tr><td><strong>Feedback endpoint</strong></td><td style="color:var(--green)">Live</td><td>POST /v1/feedback accepts agent-outcome and merchant-correction reports tied to a check_id. Agent outcomes (transaction_success, chargeback, fraud, refused) become the raw input for retroactive calibration.</td></tr>
+<tr><td><strong>Registry (100K+)</strong></td><td style="color:var(--green)">Live</td><td>100,000+ domains from Tranco top-100K. Six-tier fetch ladder ensures comprehensive content analysis. Top-1M seed in progress across 23 seed boxes.</td></tr>
+<tr><td><strong>Calibration dataset</strong></td><td style="color:var(--text-dim)">Next</td><td>The feedback endpoint ships the collection path. Over 6-12 months of agent outcome data, retroactive backtesting turns real fraud/chargeback signal into a dataset nobody else has. That becomes the real moat.</td></tr>
 <tr><td><strong>KYC infrastructure</strong></td><td style="color:var(--text-dim)">Planned</td><td>Enhanced, KYC-Verified, Enterprise tiers with partner integrations (Jumio / Onfido / Persona / OpenCorporates / Plaid)</td></tr>
 <tr><td><strong>Infrastructure scoring v2</strong></td><td style="color:var(--text-dim)">Planned</td><td>Parent company linkage (cloudfront.net to Amazon), x402/MPP endpoint detection, API-specific checklists</td></tr>
 <tr><td><strong>Historical WHOIS integration</strong></td><td style="color:var(--text-dim)">Planned</td><td>Enables true registrant-change detection without the false positives of the updated_date heuristic</td></tr>

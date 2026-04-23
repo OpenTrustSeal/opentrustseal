@@ -208,7 +208,7 @@ footer a{color:var(--text-light)}
 <div class="container">
 <img src="/otslogo.png" alt="" class="hero-logo" aria-hidden="true">
 <h1>Should your AI agent pay this site?</h1>
-<p class="subtitle">OpenTrustSeal is the independent trust verification layer for AI agent commerce. One API call returns a cryptographically signed evidence bundle with a trust score, six-category signal breakdown, and a PROCEED / CAUTION / DENY recommendation. Free for merchants to check their score. Free tier for developers.</p>
+<p class="subtitle">OpenTrustSeal is the independent trust attestation layer for AI agent commerce. One API call returns a cryptographically signed evidence bundle with a 0-100 trust score, a PROCEED / CAUTION / DENY recommendation, a confidence rating, and a reason keyed to the verdict. Neutral -- we are not a payment rail. Free for merchants. Free tier for developers.</p>
 </div>
 </header>
 
@@ -292,12 +292,22 @@ footer a{color:var(--text-light)}
 <div class="how-card">
 <div class="how-num">2</div>
 <h3>Signed evidence, not opaque scores</h3>
-<p>Every response is cryptographically signed with Ed25519. Agents verify the bundle without trusting us. Payment protocols can cite our verdicts without putting us on their critical path. The evidence bundle is the product; the trust score is a convenience summary over it.</p>
+<p>Every response is cryptographically signed with Ed25519. The signed payload covers the score, the recommendation, the confidence rating, and the cautionReason together. Agents verify the bundle without trusting us. Payment protocols can cite our verdicts without putting us on their critical path.</p>
 </div>
 <div class="how-card">
 <div class="how-num">3</div>
-<h3>100,000+ domains scored</h3>
-<p>The registry covers the Tranco top-100K with longitudinal trust profiles. A six-tier fetch ladder (direct, headless Chrome, residential proxy, Wayback Machine, protocol probes) ensures comprehensive content analysis even for sites behind aggressive bot protection.</p>
+<h3>Confidence + reason, not a blanket flag</h3>
+<p>Every verdict carries a confidence rating (high / medium / low) and, when CAUTION, a cautionReason (incomplete_evidence, weak_signals, new_domain, infrastructure). Agents branch on the reason: a low-confidence CAUTION is fine for small-dollar; a high-confidence new-domain CAUTION should confirm with the user. One API, policy-ready.</p>
+</div>
+<div class="how-card">
+<div class="how-num">4</div>
+<h3>Tranco top-1M coverage</h3>
+<p>The registry is being populated across the full Tranco top-1M. A six-tier fetch ladder (direct, headless Chrome, residential proxy, home-ISP residential Playwright, Wayback Machine, commercial scraper) rescues content from sites behind aggressive bot protection so the dataset is actually complete, not a gated allowlist.</p>
+</div>
+<div class="how-card">
+<div class="how-num">5</div>
+<h3>Neutral by design</h3>
+<p>OpenTrustSeal is not a payment processor. We never handle money. We never gatekeep transactions. A trust authority that also processes payments has a structural conflict of interest when scoring the merchants it processes for. Our neutrality is a feature that payment rails cannot replicate without divesting their merchant relationships.</p>
 </div>
 </div>
 </div>
@@ -335,19 +345,24 @@ r = httpx.<span class="fn">get</span>(<span class="str">"https://api.opentrustse
 data = r.<span class="fn">json</span>()<br>
 <br>
 <span class="comment"># data["trustScore"]       -> 77</span><br>
-<span class="comment"># data["recommendation"]   -> "PROCEED"</span><br>
-<span class="comment"># data["brandTier"]        -> "well_known"</span><br>
-<span class="comment"># data["crawlability"]     -> "ok" or "blocked"</span><br>
+<span class="comment"># data["recommendation"]   -> "PROCEED" | "CAUTION" | "DENY"</span><br>
+<span class="comment"># data["confidence"]       -> "high" | "medium" | "low"</span><br>
+<span class="comment"># data["cautionReason"]    -> "incomplete_evidence" | "weak_signals" | "new_domain" | "infrastructure" | null</span><br>
+<span class="comment"># data["scoringModel"]     -> "ots-v1.4-weights"</span><br>
+<span class="comment"># data["brandTier"]        -> "well_known" | "scored"</span><br>
 <span class="comment"># data["signals"]          -> 6-category evidence breakdown</span><br>
-<span class="comment"># data["flags"]            -> [WELL_KNOWN_BRAND, ...]</span><br>
-<span class="comment"># data["checklist"]        -> actionable improvements</span><br>
-<span class="comment"># data["signature"]        -> Ed25519 cryptographic proof</span><br>
-<span class="comment"># data["jurisdiction"]     -> country + legal framework + cross-border risk</span><br>
+<span class="comment"># data["signature"]        -> Ed25519 cryptographic proof (covers all above)</span><br>
 <br>
+<span class="comment"># Policy branches on confidence + cautionReason, not just recommendation:</span><br>
 <span class="kw">if</span> data[<span class="str">"recommendation"</span>] == <span class="str">"DENY"</span>:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">"Refusing:"</span>, data[<span class="str">"reasoning"</span>])<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">refuse</span>(data[<span class="str">"reasoning"</span>])<br>
 <span class="kw">elif</span> data[<span class="str">"recommendation"</span>] == <span class="str">"CAUTION"</span>:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">confirm_with_user</span>(data[<span class="str">"reasoning"</span>])<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> data[<span class="str">"confidence"</span>] == <span class="str">"low"</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">proceed_if_low_dollar</span>(threshold=<span class="str">"$25"</span>)&nbsp;&nbsp;<span class="comment"># evidence gap, not bad</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">elif</span> data[<span class="str">"cautionReason"</span>] == <span class="str">"new_domain"</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">confirm_with_user</span>(<span class="str">"Site is under 1 year old."</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">confirm_with_user</span>(data[<span class="str">"reasoning"</span>])<br>
 </div>
 <p style="font-size:0.85rem">Free tier: 60 requests/minute, 10,000/month. <a href="https://api.opentrustseal.com/docs" style="color:#93c5fd">API docs</a> | <a href="/examples/" style="color:#93c5fd">Integration examples</a> | <a href="/marketing/" style="color:#93c5fd">How scoring works</a></p>
 </div>

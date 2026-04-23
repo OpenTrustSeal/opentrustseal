@@ -1,5 +1,65 @@
 # OpenTrustSeal Project State
 
+## Session Summary (2026-04-22 through 2026-04-23) -- launch-ready push
+
+One sustained session that cleared the 6 pre-launch blockers, deployed the full Codex fix bundle + v1.4 rescore + tier 6, and added a 5-box Hetzner accelerator fleet to cut seed ETA from 7.8d to ~3.5d.
+
+**All 6 launch blockers done:**
+
+1. **API droplet upgraded** -- `ott-api-1` → `ots-ap-1` (DO label), resized to 2vCPU / 2GB / 60GB ($18/mo). Longer-than-expected resize (~15 min) because disk size bumped from 25 GB to 60 GB. Services all came back clean.
+2. **Litestream → Backblaze B2** -- continuous WAL-page replication to `s3://ots-db-backup/production/ott.db`, 72h granular restore, independent failure domain. Verified end-to-end (`litestream restore` match live DB exactly). Runbook at `docs/LITESTREAM-RUNBOOK.md`.
+3. **Cloudflare proxy live** -- opentrustseal.com was already CF-registered but proxy was OFF. Turned on orange cloud for apex + www + api. SSL mode Full (strict). Page rule: `/v1/check/*` cache bypass. **Bot Fight Mode OFF** (API needs to accept default Python/Node UAs). Verified default urllib, httpx, requests, curl, node-fetch all get 200.
+4. **logrotate deployed** to API + 18 seed boxes (daily, 14 days, compress, copytruncate, 100 MB size cap).
+5. **Repo public** at `github.com/OpenTrustSeal/opentrustseal`. Credential audit found zero leaked secrets in tracked files or git history. `SECURITY.md` with 2-day acknowledgment + 7-day first-pass + severity-tiered fix timelines.
+6. **Methodology page polished** -- added "Why independent, not a payment rail" section (neutrality narrative), "Confidence and cautionReason" section (agent-decision surface), "Open methodology and open dataset" section (linking repo + v1.4 spec + SECURITY.md).
+
+**Codex fix bundle deployed + v1.4 rescore complete:**
+
+- API box running the fix bundle + v1.4 scoring. All 1,231 production rows rescored.
+- Distribution: 1215 high / 12 medium / 4 low confidence. cautionReason: 237 incomplete_evidence / 165 weak_signals / 20 new_domain.
+- `CONTENT_UNSCORABLE` flag preserved via one-shot backfill from pre-rescore snapshot (303 rows).
+- **Gotcha encountered + fixed:** systemd unit had `OTT_DB_PATH` (legacy) but new code reads `OTS_DB_PATH` → briefly wrote to empty `ots.db` next to populated `ott.db`. Patched the unit env to set both.
+- **Gotcha encountered + fixed:** legacy env files live at `/etc/opentrusttoken/*.env`; new code reads `/etc/opentrustseal/*.env`. Symlinked `/etc/opentrustseal/` → `/etc/opentrusttoken/` families.
+- **Gotcha encountered + fixed:** cron's `crawl_daily.sh` had been failing silently for 2 days because it referenced `/opt/opentrustseal/`. Resolved by symlinking `/opt/opentrustseal` → `/opt/opentrusttoken` on the API box.
+- **Gotcha encountered + fixed:** nginx `proxy_read_timeout 30s` shorter than the full tier 1-6 ladder. Bumped to 120s.
+
+**Tier 6 Bright Data activation complete:**
+
+- `SCRAPER_ENABLED=true`, provider `brightdata`, zone `ots_web_unlocker`, REST API (Bearer UUID token, not legacy proxy-auth — fix committed as `ff65964`).
+- 289 currently-stubborn domains preloaded into `tier6_gate` with `strike_count=3` so tier 6 fires on first re-crawl.
+- Budget: $100 Allen + $100 Bright Data match = $207 credit. Projected burn ~$12-36/mo.
+- 3-strike gate + circuit breaker + feature flag = three safety layers before any paid call.
+
+**Residential fleet configured:** `RESIDENTIAL_URLS=http://100.125.118.64:8901,http://100.123.7.71:8901` (Mac Air + gaming PC). Round-robin with per-endpoint circuit breakers.
+
+**Upptime status page refreshed:** repo moved to `OpenTrustSeal/status`, 8 endpoints monitored (health, full check, stats/dataset, stats fetch counters, DID doc, landing, dashboard, methodology), `bonedoc911` assigned to incident issues for email alerts. CNAME `status.opentrustseal.com` configured.
+
+**Hetzner accelerator fleet added (2026-04-23):**
+
+5 boxes to cut fleet ETA from 7.8 days to ~3.5 days.
+
+| Box | Plan | Location | IP | Slice |
+|---|---|---|---|---|
+| ots-seed-19 | CX23 | eu-central (Nuremberg) | 46.225.108.52 | v-10 bottom 37.5K |
+| ots-seed-20 | CX23 | eu-central | 91.98.117.193 | v-11 bottom 37.5K |
+| ots-seed-21 | CX23 | eu-central | 204.168.243.115 | v-14 bottom 37.5K |
+| ots-seed-22 | CX23 | eu-central | 204.168.247.42 | v-18 bottom 37.5K |
+| ots-seed-23 | CPX11 | us-west (Hillsboro) | 5.78.152.69 | v-9 Sydney range 20001-37500 |
+
+Cost: €4.90/mo × 4 EU + €4.35/mo × 1 US = ~€2.70 prorated for ~3 days.
+
+**Fleet size now 23 boxes:** API (1) + crawler (1) + DO seeds 1-8 + Vultr seeds 9-18 + Hetzner seeds 19-23 + residential tier-4 fleet (Mac + PC).
+
+**What's left before public launch:**
+
+1. Seed crawl completion (~3-3.5 days from 2026-04-23)
+2. Post-seed: merge 23 DBs via `merge_db.py`, v1.4 rescore, export CSV+JSON+SHA256
+3. Publish dataset to Hugging Face + GitHub Release (draft ready at `dataset/PUBLICATION-DRAFT.md`)
+4. Submit CrewAI PR to `crewAIInc/crewAI` with HF URL filled in
+5. (Nice-to-have, not blocking) Transparency-log UI browser
+
+---
+
 ## Session Summary (2026-04-17 through 2026-04-19)
 
 Three-day push to ship the 100K + 1M seed dataset and harden agent-facing surfaces. Everything below landed in this window.

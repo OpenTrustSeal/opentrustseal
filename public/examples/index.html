@@ -110,62 +110,84 @@ footer img{height:32px;margin:0 auto 0.5rem;display:block}
 <!-- Example 1 -->
 <div class="example">
 <div class="example-header">
-<h2>1. Basic Trust Check</h2>
+<h2>1. Basic Trust Check with Confidence-Aware Policy</h2>
 <span class="example-tag beginner">Beginner</span>
 </div>
 <div class="example-body">
-<p>The simplest integration. Check a domain before making a payment. Act on the recommendation.</p>
+<p>The simplest integration. Check a domain before making a payment. Branch on <code>recommended_action</code>, which combines recommendation + confidence + cautionReason into one decision hint so your policy is the same as every other OpenTrustSeal consumer.</p>
 
 <div class="code">
 <span class="kw">from</span> opentrustseal <span class="kw">import</span> check<br>
 <br>
 result = check(<span class="str">"stripe.com"</span>)<br>
 <br>
-<span class="kw">if</span> result.is_blocked:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">"Payment refused:"</span>, result.reasoning)<br>
-<span class="kw">elif</span> result.is_risky <span class="kw">and</span> amount > <span class="num">100</span>:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">"Amount exceeds CAUTION limit. Need user approval."</span>)<br>
-<span class="kw">elif</span> result.is_safe:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;print(<span class="str">"Payment authorized."</span>)<br>
+<span class="comment"># One property, six policy outcomes:</span><br>
+<span class="kw">if</span> result.recommended_action == <span class="str">"refuse_critical"</span>:&nbsp;&nbsp;&nbsp;<span class="comment"># malware/phishing detected</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;block_and_alert()<br>
+<span class="kw">elif</span> result.recommended_action == <span class="str">"refuse"</span>:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># DENY tier</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;refuse_payment(result.reasoning)<br>
+<span class="kw">elif</span> result.recommended_action == <span class="str">"confirm_low_value"</span>:&nbsp;&nbsp;<span class="comment"># CAUTION with low confidence</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> amount &lt; <span class="num">25</span>: proceed()&nbsp;&nbsp;<span class="comment"># evidence incomplete, not necessarily bad</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else</span>: ask_user()<br>
+<span class="kw">elif</span> result.recommended_action == <span class="str">"confirm_new_domain"</span>:&nbsp;&nbsp;<span class="comment"># CAUTION, under 1 year old</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;ask_user(<span class="str">"Site is under 1 year old. Proceed?"</span>)<br>
+<span class="kw">elif</span> result.recommended_action == <span class="str">"confirm_caution"</span>:&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># CAUTION, weak signals</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;ask_user(result.reasoning)<br>
+<span class="kw">else</span>:&nbsp;&nbsp;<span class="comment"># "proceed"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;proceed()<br>
 <br>
-<span class="comment"># Access signal details</span><br>
-print(result.trust_score)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 83</span><br>
-print(result.signals.ssl.score)&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 100</span><br>
-print(result.jurisdiction.country)&nbsp;<span class="comment"># "US"</span>
+<span class="comment"># Or if you want a human-readable companion for logs:</span><br>
+print(result.action_message)&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># e.g. "Safe to proceed with this merchant."</span><br>
+<br>
+<span class="comment"># And the raw fields for anything custom:</span><br>
+print(result.trust_score)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 83</span><br>
+print(result.confidence)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># "high"</span><br>
+print(result.caution_reason)&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># None (only set on CAUTION)</span><br>
+print(result.signals.ssl.score)&nbsp;&nbsp;<span class="comment"># 100</span>
 </div>
 
-<div class="output-label">Output: stripe.com</div>
+<div class="output-label">Output: stripe.com (PROCEED, high confidence)</div>
 <div class="output">
 <span class="bold">--- Attempting to pay $49.99 to stripe.com ---</span><br>
 <br>
-Domain:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; stripe.com<br>
-Trust Score:&nbsp;&nbsp;&nbsp; <span class="pass">83/100</span><br>
-Recommendation: <span class="pass">PROCEED</span><br>
-Category:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;infrastructure<br>
-Country:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;US (US)<br>
+Domain:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; stripe.com<br>
+Trust Score:&nbsp;&nbsp;&nbsp;&nbsp; <span class="pass">83/100</span><br>
+Recommendation:&nbsp; <span class="pass">PROCEED</span><br>
+Confidence:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;high<br>
+Scoring Model:&nbsp;&nbsp;&nbsp;ots-v1.4-weights<br>
 <br>
 Signals:<br>
-&nbsp;&nbsp;Reputation:&nbsp; 93/100<br>
-&nbsp;&nbsp;Identity:&nbsp;&nbsp;&nbsp; 55/55<br>
-&nbsp;&nbsp;Content:&nbsp;&nbsp;&nbsp;&nbsp; 95/100<br>
-&nbsp;&nbsp;Domain Age:&nbsp; 100/100<br>
-&nbsp;&nbsp;SSL/TLS:&nbsp;&nbsp;&nbsp;&nbsp; 100/100<br>
-&nbsp;&nbsp;DNS:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 60/100<br>
+&nbsp;&nbsp;Reputation:&nbsp; 93/100&nbsp;&nbsp; Identity:&nbsp;&nbsp; 55/55<br>
+&nbsp;&nbsp;Content:&nbsp;&nbsp;&nbsp;&nbsp; 95/100&nbsp;&nbsp; Domain Age: 100/100<br>
+&nbsp;&nbsp;SSL/TLS:&nbsp;&nbsp;&nbsp; 100/100&nbsp;&nbsp; DNS:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 60/100<br>
 <br>
-<span class="pass">SAFE: Established domain (5+ years), valid SSL, clean reputation.</span><br>
+<span class="pass">ACTION: Safe to proceed with this merchant.</span><br>
 <span class="pass">Payment of $49.99 authorized.</span>
 </div>
 
-<div class="output-label">Output: fake domain</div>
+<div class="output-label">Output: CAUTION with low confidence (crawl blocked by CF Enterprise)</div>
+<div class="output">
+<span class="bold">--- Attempting to pay $8.00 to example-store.com ---</span><br>
+<br>
+Trust Score:&nbsp;&nbsp;&nbsp;&nbsp; <span class="bold" style="color:#d97706">58/100</span><br>
+Recommendation:&nbsp; <span class="bold" style="color:#d97706">CAUTION</span><br>
+Confidence:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;low<br>
+Caution Reason:&nbsp;&nbsp;incomplete_evidence<br>
+<br>
+<span class="bold" style="color:#d97706">ACTION: Evidence incomplete. Not necessarily bad. Low-dollar OK. Confirm larger amounts.</span><br>
+<span class="pass">Amount is $8 (under $25 threshold). Payment authorized.</span>
+</div>
+
+<div class="output-label">Output: fake domain (refuse_critical)</div>
 <div class="output">
 <span class="bold">--- Attempting to pay $899.00 to totally-fake-xyz123.com ---</span><br>
 <br>
 Trust Score:&nbsp;&nbsp;&nbsp; <span class="fail">23/100</span><br>
 Recommendation: <span class="fail">DENY</span><br>
+Confidence:&nbsp;&nbsp;&nbsp;&nbsp; high<br>
 Flags:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NO_IDENTITY, NO_SSL<br>
 <br>
-<span class="fail">BLOCKED: no SSL detected, no identity verification on file.</span><br>
-<span class="fail">Payment refused.</span>
+<span class="fail">ACTION: Refuse this transaction.</span>
 </div>
 </div>
 </div>
@@ -326,10 +348,13 @@ Summary: 8 PROCEED, 2 CAUTION, 0 DENY
 <span class="comment"># curl</span><br>
 curl https://api.opentrustseal.com/v1/check/merchant.com<br>
 <br>
-<span class="comment"># JavaScript</span><br>
+<span class="comment"># JavaScript (fetch, works in browser + Node 18+)</span><br>
 <span class="kw">const</span> r = <span class="kw">await</span> fetch(<span class="str">'https://api.opentrustseal.com/v1/check/merchant.com'</span>);<br>
 <span class="kw">const</span> data = <span class="kw">await</span> r.json();<br>
 <span class="kw">if</span> (data.recommendation === <span class="str">'DENY'</span>) <span class="kw">throw new</span> Error(data.reasoning);<br>
+<span class="kw">if</span> (data.recommendation === <span class="str">'CAUTION'</span> &amp;&amp; data.confidence === <span class="str">'low'</span>) {<br>
+&nbsp;&nbsp;<span class="comment">// fetch gap, not necessarily bad; safe for small-dollar</span><br>
+}<br>
 <br>
 <span class="comment"># Go</span><br>
 resp, _ := http.Get(<span class="str">"https://api.opentrustseal.com/v1/check/merchant.com"</span>)<br>
@@ -344,14 +369,21 @@ response = Net::HTTP.get(URI(<span class="str">"https://api.opentrustseal.com/v1
 &nbsp;&nbsp;<span class="str">"domain"</span>: <span class="str">"merchant.com"</span>,<br>
 &nbsp;&nbsp;<span class="str">"trustScore"</span>: <span class="num">81</span>,<br>
 &nbsp;&nbsp;<span class="str">"recommendation"</span>: <span class="str">"PROCEED"</span>,<br>
+&nbsp;&nbsp;<span class="str">"confidence"</span>: <span class="str">"high"</span>,<br>
+&nbsp;&nbsp;<span class="str">"cautionReason"</span>: <span class="kw">null</span>,&nbsp;&nbsp;<span class="comment">// set only on CAUTION; one of: incomplete_evidence, weak_signals, new_domain, infrastructure</span><br>
+&nbsp;&nbsp;<span class="str">"scoringModel"</span>: <span class="str">"ots-v1.4-weights"</span>,<br>
 &nbsp;&nbsp;<span class="str">"reasoning"</span>: <span class="str">"Established domain, valid SSL..."</span>,<br>
+&nbsp;&nbsp;<span class="str">"brandTier"</span>: <span class="str">"well_known"</span>,<br>
 &nbsp;&nbsp;<span class="str">"siteCategory"</span>: <span class="str">"consumer"</span>,<br>
 &nbsp;&nbsp;<span class="str">"jurisdiction"</span>: { <span class="str">"country"</span>: <span class="str">"US"</span>, <span class="str">"crossBorderRisk"</span>: <span class="str">"standard"</span> },<br>
 &nbsp;&nbsp;<span class="str">"signals"</span>: { ... },<br>
 &nbsp;&nbsp;<span class="str">"checklist"</span>: [ ... ],<br>
-&nbsp;&nbsp;<span class="str">"signature"</span>: <span class="str">"z3FXQ...ed25519"</span><br>
+&nbsp;&nbsp;<span class="str">"signature"</span>: <span class="str">"z3FXQ...ed25519"</span>,&nbsp;&nbsp;<span class="comment">// covers score + recommendation + confidence + cautionReason</span><br>
+&nbsp;&nbsp;<span class="str">"issuer"</span>: <span class="str">"did:web:opentrustseal.com"</span><br>
 }
 </div>
+
+<p style="margin-top:1rem;font-size:0.88rem;color:#4b5563">The signature covers <code>domain</code>, <code>trustScore</code>, <code>recommendation</code>, <code>confidence</code>, <code>cautionReason</code>, and the full <code>signals</code> block. Fetch our public key from <code>https://opentrustseal.com/.well-known/did.json</code> to verify any response without calling us back.</p>
 </div>
 </div>
 
