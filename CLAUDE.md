@@ -50,13 +50,70 @@ Cost: €4.90/mo × 4 EU + €4.35/mo × 1 US = ~€2.70 prorated for ~3 days.
 
 **Fleet size now 23 boxes:** API (1) + crawler (1) + DO seeds 1-8 + Vultr seeds 9-18 + Hetzner seeds 19-23 + residential tier-4 fleet (Mac + PC).
 
+**Parent-company linkage shipped 2026-04-23:** ~60 infrastructure providers in `server/app/data/parent_companies.json`. When a domain matches a known suffix (cloudfront.net, *.vercel.app, s3.amazonaws.com, etc), pipeline overrides `site_category="infrastructure"` unless content already detected a real consumer storefront. rescore.py honors the registry too. Parent info persisted in `raw_signals.identity.parentCompany`.
+
+**Historical WHOIS collector ships dark 2026-04-23:** `server/app/collectors/historical_whois.py` wired into pipeline parallel gather, flag-gated via `HISTORICAL_WHOIS_ENABLED=false`. Provider = WhoisXMLAPI (~$20/mo Starter). Env template at `deploy/historical_whois.env.template`. To activate: sign up at https://whoisxmlapi.com, drop UUID API key into `/etc/opentrustseal/historical_whois.env`, set `HISTORICAL_WHOIS_ENABLED=true`, restart API. Defends against the expired-domain-purchase attack (scammer buys aged dropped domain to ride brand anchor).
+
+**Seed crawl snapshot 2026-04-23 (checkpoint-based cumulative):**
+
+| Seeds | Progress |
+|---|---|
+| v-9 Sydney + do-2 (tail) + hetz-23 (middle) | v-9 25.9%, do-2 56.9%, hetz-23 60.5% -- tranche ~1d |
+| v-10/v-11/v-14/v-18 + 4 Hetzner EU pairs | Vultr 45-57%, Hetz 25-30% -- 2-2.5d |
+| DO 7/8 (full 75K each) | 48% each -- 2.3d |
+| v-17 top half (bottleneck) | 25.1% -- 3.9d (slowest in fleet) |
+| v-16 top half | 29.6% -- 3.2d |
+
+**Fleet completion ETA: ~3-4 days from 2026-04-23.**
+
 **What's left before public launch:**
 
-1. Seed crawl completion (~3-3.5 days from 2026-04-23)
-2. Post-seed: merge 23 DBs via `merge_db.py`, v1.4 rescore, export CSV+JSON+SHA256
+1. Seed crawl completion (~3-4 days)
+2. Post-seed: merge 23 DBs via `merge_db.py`, v1.4 rescore, export CSV+JSON+SHA256 via `export_dataset.py`
 3. Publish dataset to Hugging Face + GitHub Release (draft ready at `dataset/PUBLICATION-DRAFT.md`)
 4. Submit CrewAI PR to `crewAIInc/crewAI` with HF URL filled in
 5. (Nice-to-have, not blocking) Transparency-log UI browser
+
+**Post-seed action sequence (when fleet hits 100%):**
+
+```bash
+# 1. Pull each seed's per-process DBs back to API box or merge host
+for ip in <all 23 IPs>; do
+  ssh root@$ip "tar czf /tmp/ots-seed-dbs.tar.gz /opt/opentrusttoken/data/ots-*.db"
+  scp root@$ip:/tmp/ots-seed-dbs.tar.gz /tmp/seed-dbs/seed-${ip//./_}.tar.gz
+done
+mkdir -p /tmp/seed-dbs/extracted
+for f in /tmp/seed-dbs/*.tar.gz; do tar xzf "$f" -C /tmp/seed-dbs/extracted; done
+
+# 2. Merge into production DB (dry-run first, then apply)
+cd /opt/opentrusttoken
+sudo -u ott /opt/opentrusttoken/venv/bin/python3 merge_db.py /tmp/seed-dbs/extracted/ --dry-run
+# Review the plan, then:
+sudo -u ott /opt/opentrusttoken/venv/bin/python3 merge_db.py /tmp/seed-dbs/extracted/
+
+# 3. v1.4 rescore against full merged DB
+sudo -u ott /opt/opentrusttoken/venv/bin/python3 rescore.py --dry-run
+sudo -u ott /opt/opentrusttoken/venv/bin/python3 rescore.py
+
+# 4. Export dataset
+sudo -u ott /opt/opentrusttoken/venv/bin/python3 export_dataset.py
+# Produces: exports/ots-dataset-<date>.csv, .json, .sha256
+
+# 5. Destroy seed droplets (save money)
+# Use DO/Vultr/Hetzner consoles OR their APIs. Each provider supports bulk delete.
+
+# 6. Publish dataset
+# Hugging Face: create dataset repo, upload CSV+JSON, paste card from PUBLICATION-DRAFT.md
+# GitHub: create Release on OpenTrustSeal/opentrustseal with same files
+
+# 7. Submit CrewAI PR
+# Fork crewAIInc/crewAI, copy sdk/crewai-pr/opentrustseal_tool/ to
+# lib/crewai-tools/src/crewai_tools/tools/opentrustseal_tool/
+# Register in lib/crewai-tools/src/crewai_tools/__init__.py
+# Run ruff check/format, open PR citing sdk/crewai-pr/PR-DESCRIPTION.md
+```
+
+See full runbooks: `docs/V1.4-RESCORE-RUNBOOK.md`, `docs/PHASE-2-COMPLETION-RUNBOOK.md`.
 
 ---
 
