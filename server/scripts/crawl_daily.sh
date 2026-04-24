@@ -35,6 +35,17 @@ fi
 . "${VENV}/bin/activate"
 
 export OTS_DATA_DIR="${DATA_DIR}"
+# Critical: app reads OTS_DB_PATH and defaults to ./data/ots.db if missing.
+# Without this export the cron silently runs against a blank ots.db, logs
+# "registry empty", and skips the real production DB at ott.db. Make the
+# target explicit instead of relying on cwd + default.
+export OTS_DB_PATH="${DATA_DIR}/ott.db"
+export OTS_KEY_DIR="${APP_DIR}/keys"
+# Enable the same fetch-tier flags the live service runs with so daily
+# re-crawls escalate through probe + Wayback on blocked sites, matching
+# what's live in production.
+export OTS_ENABLE_WAYBACK_TIER=1
+export OTS_ENABLE_PROBE_TIER=1
 
 cd "${APP_DIR}"
 

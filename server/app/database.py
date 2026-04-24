@@ -317,16 +317,35 @@ def is_registered(domain: str) -> bool:
 
 
 def get_registration(domain: str) -> dict | None:
+    """Load a registration row with its sensitive fields decrypted.
+
+    Private fields (contact_name, contact_email, phone, address, ein_tax_id)
+    are stored encrypted with NaCl SecretBox under /opt/opentrustseal/keys/
+    registration_kek.bin. Rows predating the encryption landing are stored
+    as plaintext; crypto.decrypt_field handles both shapes transparently.
+    """
+    from . import crypto as _crypto
     with _get_conn() as conn:
         row = conn.execute(
             "SELECT * FROM registrations WHERE domain = ?", (domain,)
         ).fetchone()
     if row is None:
         return None
-    return dict(row)
+    out = dict(row)
+    for field in _crypto.ENCRYPTED_REGISTRATION_FIELDS:
+        if field in out:
+            out[field] = _crypto.decrypt_field(out[field])
+    return out
 
 
 def save_registration(data: dict) -> None:
+    """Write a registration row. Sensitive fields are encrypted at rest.
+
+    Callers always pass plaintext for sensitive fields; encryption happens
+    inside this function so the crypto boundary is one file, not sprinkled
+    across the route handlers.
+    """
+    from . import crypto as _crypto
     with _get_conn() as conn:
         conn.execute(
             """INSERT OR REPLACE INTO registrations
@@ -339,9 +358,11 @@ def save_registration(data: dict) -> None:
                 data["domain"], data["business_name"], data["country"],
                 data.get("state_province"), data["business_type"],
                 data["website_category"], data.get("year_established"),
-                data.get("contact_name"), data["contact_email"],
-                data.get("phone"), data.get("address"),
-                data.get("ein_tax_id"),
+                _crypto.encrypt_field(data.get("contact_name")),
+                _crypto.encrypt_field(data["contact_email"]),
+                _crypto.encrypt_field(data.get("phone")),
+                _crypto.encrypt_field(data.get("address")),
+                _crypto.encrypt_field(data.get("ein_tax_id")),
                 data.get("social_twitter"), data.get("social_linkedin"),
                 data["verification_code"], data.get("verification_method", "dns"),
                 data["registered_at"], "pending",
@@ -350,11 +371,20 @@ def save_registration(data: dict) -> None:
 
 
 def update_registration_verification(domain: str, updates: dict) -> None:
+    """Update specific columns on an existing registration row.
+
+    Automatically encrypts updates to any of the sensitive fields so a
+    verification retry that sends a corrected email or phone doesn't land
+    as plaintext. Non-sensitive fields pass through unchanged.
+    """
+    from . import crypto as _crypto
     with _get_conn() as conn:
         set_clauses = []
         values = []
         for key, val in updates.items():
             set_clauses.append(f"{key} = ?")
+            if key in _crypto.ENCRYPTED_REGISTRATION_FIELDS and isinstance(val, str):
+                val = _crypto.encrypt_field(val)
             values.append(val)
         values.append(domain)
         conn.execute(

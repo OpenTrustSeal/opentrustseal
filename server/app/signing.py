@@ -43,40 +43,56 @@ def _load_verify_key() -> nacl.signing.VerifyKey:
 
 
 def sign_payload(payload: dict) -> str:
-    """Sign a JSON payload using Ed25519.
+    """Sign a JSON payload using Ed25519. Returns a multibase-encoded string.
 
-    Process (per spec Section 9.2):
+    Process:
     1. JSON-canonicalize the payload (sorted keys, no whitespace)
     2. SHA-256 hash
-    3. Sign with Ed25519
-    4. Return base58btc-encoded signature (multibase prefix z)
+    3. Ed25519 sign the digest
+    4. Return the signature as multibase base64pad (prefix 'M')
+
+    Multibase is a W3C/IPFS convention that self-describes the encoding of
+    a binary value with a single-character prefix. 'M' means "base64pad"
+    (padded standard base64). 'z' means "base58btc"; do NOT use 'z' for
+    base64 data because external multibase decoders will try base58btc and
+    get garbage. (Earlier versions of this code had that bug.)
+
+    For backward compat, verify_signature below still accepts the legacy
+    'z'+base64pad shape so any cached response issued before this fix
+    continues to verify locally. External VC/DID consumers should only
+    see 'M' going forward.
     """
-    # JCS approximation: sorted keys, no whitespace
+    import base64
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode("utf-8")).digest()
 
     signing_key = _load_signing_key()
     signed = signing_key.sign(digest)
     signature_bytes = signed.signature
-
-    # base58btc encode with multibase prefix 'z'
-    import base64
     b64 = base64.b64encode(signature_bytes).decode("ascii")
-    return f"z{b64}"
+    return f"M{b64}"
 
 
 def get_public_key_multibase() -> str:
-    """Return public key in multibase base64 format for DID document."""
+    """Return the Ed25519 public key as multibase base64pad ('M' prefix)."""
     import base64
     verify_key = _load_verify_key()
     raw = verify_key.encode(encoder=nacl.encoding.RawEncoder)
-    return f"z{base64.b64encode(raw).decode('ascii')}"
+    return f"M{base64.b64encode(raw).decode('ascii')}"
 
 
 def verify_signature(payload: dict, signature: str) -> bool:
-    """Verify a signature against a payload."""
+    """Verify a signature against a payload.
+
+    Accepts both:
+    - 'M'+base64pad (current correct multibase encoding)
+    - 'z'+base64pad (legacy, buggy pre-2026-04-24 encoding)
+
+    Both prefixes accept the same base64pad payload. The 'z' path exists
+    only to keep legacy cached responses verifying until the next rescore.
+    """
     import base64
-    if not signature.startswith("z"):
+    if not signature or signature[0] not in ("M", "z"):
         return False
     sig_bytes = base64.b64decode(signature[1:])
 

@@ -248,6 +248,10 @@ def main():
         now = datetime.now(timezone.utc)
         expires = now + timedelta(days=7)
 
+        # Signed fields MUST match the live pipeline (app/pipeline.py) exactly
+        # so verifiers don't need to know whether a response was generated
+        # live or via rescore. Adding fields here without adding them to the
+        # live pipeline (or vice versa) breaks external signature verification.
         signable = {
             "domain": domain,
             "signals": signals.model_dump(by_alias=True),
@@ -255,6 +259,8 @@ def main():
             "trustScore": score,
             "scoringModel": SCORING_MODEL,
             "recommendation": recommendation,
+            "confidence": confidence,
+            "cautionReason": caution_reason,
         }
         signature = sign_payload(signable)
 
