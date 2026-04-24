@@ -212,12 +212,29 @@ def main():
             if well_known:
                 flags.append("ANCHOR_ONLY")
 
+        # Parent-company linkage: if raw.identity has a stored parentCompany
+        # match, treat as infrastructure so cautionReason maps correctly.
+        # Also consult the live registry in case this domain matched an
+        # entry added AFTER its raw signals were captured.
+        site_category = "consumer"
+        pc_stored = raw.get("identity", {}).get("parentCompany")
+        if pc_stored and pc_stored.get("category"):
+            from app.collectors import parent_company as _pc_lookup
+            if _pc_lookup.is_infrastructure_category(pc_stored["category"]):
+                site_category = "infrastructure"
+        else:
+            from app.collectors import parent_company as _pc_lookup
+            live_match = _pc_lookup.lookup(domain)
+            if live_match and _pc_lookup.is_infrastructure_category(live_match.category):
+                site_category = "infrastructure"
+
         recommendation = compute_recommendation(score, flags)
         confidence = compute_confidence(signals, content_scorable=not content_unscorable, domain_age_days=domain_age_days)
         caution_reason = compute_caution_reason(
             signals, score, domain_age_days,
             content_scorable=not content_unscorable,
             confidence=confidence,
+            site_category=site_category,
         )
         reasoning = generate_reasoning(
             signals, score, recommendation,

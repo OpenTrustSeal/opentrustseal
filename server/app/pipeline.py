@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from .collectors import domain_age, ssl_check, dns_check, content_check
 from .collectors import reputation_check, identity_check
+from .collectors import historical_whois
 from .models.signals import (
     SignalBundle, DomainAgeSignal, SSLSignal, DNSSignal,
     ContentSignal, ReputationSignal,
@@ -122,11 +123,12 @@ async def run_check(domain: str) -> CheckResponse:
 
 async def _run_check_inner(domain: str) -> CheckResponse:
     # Phase 1: run independent collectors in parallel
-    age_result, dns_result, content_result, reputation_result = await asyncio.gather(
+    age_result, dns_result, content_result, reputation_result, hist_whois_result = await asyncio.gather(
         domain_age.collect(domain),
         dns_check.collect(domain),
         content_check.collect(domain),
         reputation_check.collect(domain),
+        historical_whois.collect(domain),
         return_exceptions=True,
     )
 
@@ -139,6 +141,10 @@ async def _run_check_inner(domain: str) -> CheckResponse:
         content_result._fetch_failed = True
     if isinstance(reputation_result, Exception):
         reputation_result = ReputationSignal(score=80)
+    if isinstance(hist_whois_result, Exception):
+        hist_whois_result = historical_whois.HistoricalWhoisSignal(
+            enabled=False, error=f"{type(hist_whois_result).__name__}"
+        )
 
     # Recover from transient content fetch failures by reusing the last
     # known-good signals. Without this, one timeout / 403 / bot block wipes
@@ -238,6 +244,38 @@ async def _run_check_inner(domain: str) -> CheckResponse:
     signals.content._has_robots = getattr(content_result, '_has_robots', False)
     signals.content._security_header_count = getattr(content_result, '_security_header_count', 0)
 
+    # Parent-company linkage. If the domain matches a known infrastructure
+    # provider (AWS CloudFront, GCP, Vercel, Shopify, etc.), we override the
+    # site category and carry the parent identity into raw_signals so the
+    # scoring path treats this as infrastructure rather than a consumer
+    # merchant missing a privacy policy.
+    from .collectors import parent_company as _pc
+    parent_match = _pc.lookup(domain)
+    if parent_match and _pc.is_infrastructure_category(parent_match.category):
+        # Only override when content didn't already detect a consumer storefront.
+        # Some domains like shopify.com are themselves consumer-facing even
+        # though they match their own pattern; defer to content's judgment when
+        # content already reports a consumer category with real content signals.
+        if not (
+            getattr(content_result, "_site_category", "consumer") == "consumer"
+            and (getattr(content_result, "privacy_policy", False)
+                 or getattr(content_result, "terms_of_service", False))
+        ):
+            content_result._site_category = "infrastructure"
+
+    # Merge historical WHOIS findings into age_result._registrant_change so
+    # compute_score's existing "recent ownership change" path picks them up.
+    existing_change = getattr(age_result, '_registrant_change', {}) or {}
+    if hist_whois_result.enabled:
+        existing_change.setdefault("source", "historical_whois_api")
+        existing_change.setdefault("recordCount", hist_whois_result.record_count)
+        existing_change.setdefault("earliestSeen", hist_whois_result.earliest_seen)
+        existing_change["recentChange"] = hist_whois_result.registrant_changed_recently
+        existing_change["recentChangeAt"] = hist_whois_result.recent_change_at
+        if hist_whois_result.error:
+            existing_change["error"] = hist_whois_result.error
+        age_result._registrant_change = existing_change
+
     # Store raw signal data (facts only, no scores) for re-scoring later
     raw_data = {
         "domainAge": {
@@ -296,6 +334,12 @@ async def _run_check_inner(domain: str) -> CheckResponse:
             "isPublicCompany": getattr(identity_result, '_is_public_company', False),
             "gdprRedacted": getattr(identity_result, '_gdpr_redacted', False),
             "cctldBonus": getattr(identity_result, '_cctld_bonus', 0),
+            "parentCompany": ({
+                "parent": parent_match.parent,
+                "parentName": parent_match.parent_name,
+                "category": parent_match.category,
+                "matchedSuffix": parent_match.matched_suffix,
+            } if parent_match else None),
             "whoisCountry": "",  # populated after jurisdiction detection
         },
     }

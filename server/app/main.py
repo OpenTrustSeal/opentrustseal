@@ -15,6 +15,7 @@ from .routes.register import router as register_router
 from .signing import ensure_keys, get_public_key_multibase
 from .database import init_db, get_stats, get_dataset_stats, get_coverage, store_feedback, get_feedback_summary
 from .fetch_escalation import stats as fetch_stats
+from .collectors import historical_whois as _hwhois
 from .heartbeat import read_heartbeat
 from .transparency import init_transparency_log, get_log_for_domain, get_latest_entries, verify_chain
 from .collectors import tranco
@@ -159,6 +160,7 @@ async def stats():
     return {
         **get_stats(),
         "fetch": fetch_stats(),
+        "historicalWhois": _hwhois.stats(),
         "daily_crawl": read_heartbeat(),
     }
 

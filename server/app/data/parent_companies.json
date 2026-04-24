@@ -1,0 +1,95 @@
+{
+  "_comment": "Parent-company registry for infrastructure-domain identity inheritance. When a scored domain matches any pattern below, its identity evidence inherits from the parent and its scoring model treats it as infrastructure rather than a consumer merchant. Patterns use simple suffix matching (e.g. 'cloudfront.net' matches 'foo.cloudfront.net'). Category options: cdn, cloud_compute, hosting, dns, email, api_gateway, tracking, serverless, object_storage, registrar, software_vendor, saas.",
+  "_version": "1.0.0",
+  "_updated": "2026-04-23",
+  "entries": [
+    {"suffix": "cloudfront.net",       "parent": "amazon.com",   "parent_name": "Amazon",         "category": "cdn"},
+    {"suffix": "amazonaws.com",        "parent": "amazon.com",   "parent_name": "Amazon",         "category": "cloud_compute"},
+    {"suffix": "s3.amazonaws.com",     "parent": "amazon.com",   "parent_name": "Amazon",         "category": "object_storage"},
+    {"suffix": "execute-api.us-east-1.amazonaws.com", "parent": "amazon.com", "parent_name": "Amazon", "category": "api_gateway"},
+    {"suffix": "elb.amazonaws.com",    "parent": "amazon.com",   "parent_name": "Amazon",         "category": "cloud_compute"},
+
+    {"suffix": "cloudflare.com",       "parent": "cloudflare.com", "parent_name": "Cloudflare",   "category": "cdn"},
+    {"suffix": "cloudflare.net",       "parent": "cloudflare.com", "parent_name": "Cloudflare",   "category": "cdn"},
+    {"suffix": "cdn.cloudflare.net",   "parent": "cloudflare.com", "parent_name": "Cloudflare",   "category": "cdn"},
+    {"suffix": "workers.dev",          "parent": "cloudflare.com", "parent_name": "Cloudflare",   "category": "serverless"},
+    {"suffix": "pages.dev",            "parent": "cloudflare.com", "parent_name": "Cloudflare",   "category": "hosting"},
+    {"suffix": "r2.dev",               "parent": "cloudflare.com", "parent_name": "Cloudflare",   "category": "object_storage"},
+
+    {"suffix": "akamaized.net",        "parent": "akamai.com",   "parent_name": "Akamai",         "category": "cdn"},
+    {"suffix": "akamaihd.net",         "parent": "akamai.com",   "parent_name": "Akamai",         "category": "cdn"},
+    {"suffix": "edgekey.net",          "parent": "akamai.com",   "parent_name": "Akamai",         "category": "cdn"},
+    {"suffix": "edgesuite.net",        "parent": "akamai.com",   "parent_name": "Akamai",         "category": "cdn"},
+    {"suffix": "akadns.net",           "parent": "akamai.com",   "parent_name": "Akamai",         "category": "dns"},
+
+    {"suffix": "fastly.net",           "parent": "fastly.com",   "parent_name": "Fastly",         "category": "cdn"},
+    {"suffix": "fastlylb.net",         "parent": "fastly.com",   "parent_name": "Fastly",         "category": "cdn"},
+    {"suffix": "freetls.fastly.net",   "parent": "fastly.com",   "parent_name": "Fastly",         "category": "cdn"},
+
+    {"suffix": "googleusercontent.com","parent": "google.com",   "parent_name": "Google",         "category": "object_storage"},
+    {"suffix": "appspot.com",          "parent": "google.com",   "parent_name": "Google",         "category": "serverless"},
+    {"suffix": "run.app",              "parent": "google.com",   "parent_name": "Google",         "category": "serverless"},
+    {"suffix": "cloudfunctions.net",   "parent": "google.com",   "parent_name": "Google",         "category": "serverless"},
+    {"suffix": "firebaseapp.com",      "parent": "google.com",   "parent_name": "Google",         "category": "hosting"},
+    {"suffix": "web.app",              "parent": "google.com",   "parent_name": "Google",         "category": "hosting"},
+    {"suffix": "googleapis.com",       "parent": "google.com",   "parent_name": "Google",         "category": "api_gateway"},
+    {"suffix": "gstatic.com",          "parent": "google.com",   "parent_name": "Google",         "category": "cdn"},
+
+    {"suffix": "azurewebsites.net",    "parent": "microsoft.com","parent_name": "Microsoft",      "category": "hosting"},
+    {"suffix": "azureedge.net",        "parent": "microsoft.com","parent_name": "Microsoft",      "category": "cdn"},
+    {"suffix": "azure.com",            "parent": "microsoft.com","parent_name": "Microsoft",      "category": "cloud_compute"},
+    {"suffix": "blob.core.windows.net","parent": "microsoft.com","parent_name": "Microsoft",      "category": "object_storage"},
+    {"suffix": "msedge.net",           "parent": "microsoft.com","parent_name": "Microsoft",      "category": "cdn"},
+    {"suffix": "trafficmanager.net",   "parent": "microsoft.com","parent_name": "Microsoft",      "category": "dns"},
+
+    {"suffix": "vercel.app",           "parent": "vercel.com",   "parent_name": "Vercel",         "category": "hosting"},
+    {"suffix": "vercel-dns.com",       "parent": "vercel.com",   "parent_name": "Vercel",         "category": "dns"},
+    {"suffix": "now.sh",               "parent": "vercel.com",   "parent_name": "Vercel",         "category": "hosting"},
+
+    {"suffix": "netlify.app",          "parent": "netlify.com",  "parent_name": "Netlify",        "category": "hosting"},
+    {"suffix": "netlify.com",          "parent": "netlify.com",  "parent_name": "Netlify",        "category": "hosting"},
+
+    {"suffix": "github.io",            "parent": "github.com",   "parent_name": "GitHub",         "category": "hosting"},
+    {"suffix": "githubusercontent.com","parent": "github.com",   "parent_name": "GitHub",         "category": "cdn"},
+
+    {"suffix": "herokuapp.com",        "parent": "salesforce.com","parent_name": "Heroku",        "category": "hosting"},
+    {"suffix": "herokussl.com",        "parent": "salesforce.com","parent_name": "Heroku",        "category": "hosting"},
+
+    {"suffix": "digitaloceanspaces.com","parent": "digitalocean.com","parent_name": "DigitalOcean","category": "object_storage"},
+
+    {"suffix": "stripe.network",       "parent": "stripe.com",   "parent_name": "Stripe",         "category": "api_gateway"},
+    {"suffix": "stripecdn.com",        "parent": "stripe.com",   "parent_name": "Stripe",         "category": "cdn"},
+
+    {"suffix": "doubleclick.net",      "parent": "google.com",   "parent_name": "Google",         "category": "tracking"},
+    {"suffix": "google-analytics.com", "parent": "google.com",   "parent_name": "Google",         "category": "tracking"},
+    {"suffix": "googletagmanager.com", "parent": "google.com",   "parent_name": "Google",         "category": "tracking"},
+
+    {"suffix": "shopify.com",          "parent": "shopify.com",  "parent_name": "Shopify",        "category": "saas"},
+    {"suffix": "myshopify.com",        "parent": "shopify.com",  "parent_name": "Shopify",        "category": "saas"},
+    {"suffix": "shopifycdn.com",       "parent": "shopify.com",  "parent_name": "Shopify",        "category": "cdn"},
+
+    {"suffix": "hubspot.com",          "parent": "hubspot.com",  "parent_name": "HubSpot",        "category": "saas"},
+    {"suffix": "hs-scripts.com",       "parent": "hubspot.com",  "parent_name": "HubSpot",        "category": "tracking"},
+
+    {"suffix": "salesforce.com",       "parent": "salesforce.com","parent_name": "Salesforce",    "category": "saas"},
+    {"suffix": "force.com",            "parent": "salesforce.com","parent_name": "Salesforce",    "category": "saas"},
+
+    {"suffix": "intercom.com",         "parent": "intercom.com", "parent_name": "Intercom",       "category": "saas"},
+    {"suffix": "intercom.io",          "parent": "intercom.com", "parent_name": "Intercom",       "category": "saas"},
+
+    {"suffix": "segment.io",           "parent": "twilio.com",   "parent_name": "Twilio",         "category": "tracking"},
+    {"suffix": "segment.com",          "parent": "twilio.com",   "parent_name": "Twilio",         "category": "tracking"},
+    {"suffix": "sendgrid.com",         "parent": "twilio.com",   "parent_name": "Twilio",         "category": "email"},
+    {"suffix": "sendgrid.net",         "parent": "twilio.com",   "parent_name": "Twilio",         "category": "email"},
+
+    {"suffix": "mailchimp.com",        "parent": "intuit.com",   "parent_name": "Mailchimp",      "category": "email"},
+    {"suffix": "list-manage.com",      "parent": "intuit.com",   "parent_name": "Mailchimp",      "category": "email"},
+
+    {"suffix": "auth0.com",            "parent": "okta.com",     "parent_name": "Auth0",          "category": "saas"},
+    {"suffix": "okta.com",             "parent": "okta.com",     "parent_name": "Okta",           "category": "saas"},
+
+    {"suffix": "twilio.com",           "parent": "twilio.com",   "parent_name": "Twilio",         "category": "api_gateway"},
+
+    {"suffix": "zendesk.com",          "parent": "zendesk.com",  "parent_name": "Zendesk",        "category": "saas"}
+  ]
+}
